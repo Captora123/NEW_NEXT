@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useListClients, useCreateClient, useUpdateClient, useDeleteClient,
   getListClientsQueryKey,
@@ -12,24 +12,23 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ExternalLink, Phone } from "lucide-react";
 
 const STATUSES = ["Lead", "Quoted", "Advance Paid", "Confirmed", "Completed", "Cancelled"];
-const FUNCTIONS = ["Haldi", "Mehendi", "Sangeet", "Wedding", "Reception", "Engagement", "Ring Ceremony"];
-
 const STATUS_COLORS: Record<string, string> = {
-  Lead: "bg-yellow-500/10 text-yellow-400",
-  Quoted: "bg-blue-500/10 text-blue-400",
-  "Advance Paid": "bg-purple-500/10 text-purple-400",
-  Confirmed: "bg-primary/10 text-primary",
-  Completed: "bg-green-500/10 text-green-400",
-  Cancelled: "bg-destructive/10 text-destructive",
+  Lead: "bg-amber-50 text-amber-700 border border-amber-200",
+  Quoted: "bg-blue-50 text-blue-700 border border-blue-200",
+  "Advance Paid": "bg-purple-50 text-purple-700 border border-purple-200",
+  Confirmed: "bg-orange-50 text-[#E0533C] border border-orange-200",
+  Completed: "bg-green-50 text-green-700 border border-green-200",
+  Cancelled: "bg-red-50 text-red-600 border border-red-200",
 };
 
+const FUNCTIONS = ["Haldi", "Mehendi", "Sangeet", "Wedding", "Reception", "Engagement", "Pre-Wedding"];
+
 const emptyForm = (): ClientInput => ({
-  name: "", phone: "", status: "Lead",
-  whatsapp: "", email: "", weddingDate: "",
-  venue: "", city: "", functions: [], packageAmount: 0,
+  name: "", phone: "", email: "", city: "", venue: "", weddingDate: "",
+  packageAmount: 0, status: "Lead", functions: [], whatsapp: "",
 });
 
 export default function Clients() {
@@ -52,11 +51,10 @@ export default function Clients() {
   const openEdit = (c: Client) => {
     setEditing(c);
     setForm({
-      name: c.name, phone: c.phone, status: c.status,
-      whatsapp: c.whatsapp || "", email: c.email || "",
-      weddingDate: c.weddingDate || "", venue: c.venue || "",
-      city: c.city || "", functions: c.functions || [],
-      packageAmount: c.packageAmount || 0,
+      name: c.name, phone: c.phone, email: c.email || "", city: c.city || "",
+      venue: c.venue || "", weddingDate: c.weddingDate || "",
+      packageAmount: c.packageAmount ?? 0, status: c.status,
+      functions: c.functions || [], whatsapp: c.whatsapp || "",
     });
     setOpen(true);
   };
@@ -84,146 +82,149 @@ export default function Clients() {
     });
   };
 
-  const toggleFunction = (fn: string) => {
-    setForm(f => ({
-      ...f,
-      functions: f.functions?.includes(fn) ? f.functions.filter(x => x !== fn) : [...(f.functions || []), fn],
-    }));
-  };
+  const toggleFunction = (fn: string) =>
+    setForm(f => ({ ...f, functions: f.functions?.includes(fn) ? f.functions.filter(x => x !== fn) : [...(f.functions || []), fn] }));
 
   const filtered = clients?.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone.includes(search)
-  ) || [];
+    c.phone.includes(search) ||
+    (c.city || "").toLowerCase().includes(search.toLowerCase())
+  ) ?? [];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-        <div className="flex gap-3">
-          <Input placeholder="Search by name or phone..." value={search} onChange={e => setSearch(e.target.value)} className="w-64" />
-          <Button onClick={openAdd}><Plus className="w-4 h-4 mr-2" />Add Client</Button>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Clients</h1>
+          <p className="text-slate-500 text-sm mt-0.5">{clients?.length ?? 0} total clients</p>
         </div>
+        <button
+          onClick={openAdd}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold transition-all"
+          style={{ background: "#E0533C" }}
+          onMouseEnter={e => (e.currentTarget.style.background = "#C9432C")}
+          onMouseLeave={e => (e.currentTarget.style.background = "#E0533C")}
+        >
+          <Plus className="w-4 h-4" />Add Client
+        </button>
       </div>
 
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by name, phone, city..."
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-[#E0533C] transition-all"
+        />
+      </div>
+
+      {/* Table */}
       {isLoading ? (
-        <div className="text-muted-foreground">Loading clients...</div>
+        <div className="text-slate-400 text-sm py-8">Loading clients...</div>
       ) : (
-        <div className="border border-border rounded-lg bg-card overflow-hidden">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-muted text-muted-foreground">
-              <tr>
-                <th className="p-4 font-medium">Name</th>
-                <th className="p-4 font-medium">Status</th>
-                <th className="p-4 font-medium">Phone</th>
-                <th className="p-4 font-medium">Wedding Date</th>
-                <th className="p-4 font-medium">Package</th>
-                <th className="p-4 font-medium">City</th>
-                <th className="p-4 font-medium w-28">Actions</th>
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Client</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Phone</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Wedding Date</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Package</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Pending</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Status</th>
+                <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400 w-28">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody>
               {filtered.map((client) => (
-                <tr key={client.id} className="hover:bg-muted/50 transition-colors">
-                  <td className="p-4 font-medium">{client.name}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[client.status] || "bg-muted text-muted-foreground"}`}>
+                <tr key={client.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                  <td className="px-5 py-4">
+                    <Link href={`/clients/${client.id}`}>
+                      <div className="flex items-center gap-3 cursor-pointer group">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: "#E0533C" }}>
+                          {client.name[0]}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800 group-hover:text-[#E0533C] transition-colors">{client.name}</p>
+                          <p className="text-xs text-slate-400">{client.city || "—"}</p>
+                        </div>
+                      </div>
+                    </Link>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                      <Phone className="w-3.5 h-3.5 text-slate-400" />
+                      {client.phone}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4 text-sm text-slate-600">{client.weddingDate || "—"}</td>
+                  <td className="px-5 py-4 text-sm font-semibold text-slate-800">₹{(client.packageAmount ?? 0).toLocaleString("en-IN")}</td>
+                  <td className="px-5 py-4 text-sm font-semibold text-red-600">₹{(client.totalPending ?? 0).toLocaleString("en-IN")}</td>
+                  <td className="px-5 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[client.status] || "bg-slate-100 text-slate-600"}`}>
                       {client.status}
                     </span>
                   </td>
-                  <td className="p-4">{client.phone}</td>
-                  <td className="p-4">{client.weddingDate || "—"}</td>
-                  <td className="p-4 font-medium text-primary">
-                    {client.packageAmount ? `₹${client.packageAmount.toLocaleString("en-IN")}` : "—"}
-                  </td>
-                  <td className="p-4">{client.city || "—"}</td>
-                  <td className="p-4">
-                    <div className="flex gap-2">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-2">
                       <Link href={`/clients/${client.id}`}>
-                        <button className="p-1 text-muted-foreground hover:text-foreground"><Eye className="w-4 h-4" /></button>
+                        <button className="p-1.5 rounded-lg text-slate-400 hover:text-[#E0533C] hover:bg-orange-50 transition-colors"><ExternalLink className="w-4 h-4" /></button>
                       </Link>
-                      <button onClick={() => openEdit(client)} className="p-1 text-muted-foreground hover:text-primary"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => setDeleteId(client.id)} className="p-1 text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => openEdit(client)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => setDeleteId(client.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No clients found.</td></tr>
+                <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-400 text-sm">No clients found.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       )}
 
+      {/* Add/Edit dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Edit Client" : "Add Client"}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? "Edit Client" : "Add New Client"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1 col-span-2">
-                <Label>Name *</Label>
-                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Bride & Groom name" />
-              </div>
-              <div className="space-y-1">
-                <Label>Phone *</Label>
-                <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="9876543210" />
-              </div>
-              <div className="space-y-1">
-                <Label>WhatsApp</Label>
-                <Input value={form.whatsapp || ""} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="9876543210" />
-              </div>
-              <div className="space-y-1 col-span-2">
-                <Label>Email</Label>
-                <Input type="email" value={form.email || ""} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" />
-              </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5 col-span-2"><Label>Full Name *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Client's full name" /></div>
+              <div className="space-y-1.5"><Label>Phone *</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="9876543210" /></div>
+              <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={form.whatsapp || ""} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="WhatsApp number" /></div>
+              <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={form.email || ""} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" /></div>
+              <div className="space-y-1.5"><Label>City</Label><Input value={form.city || ""} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Lucknow" /></div>
+              <div className="space-y-1.5"><Label>Venue</Label><Input value={form.venue || ""} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} placeholder="Venue name" /></div>
+              <div className="space-y-1.5"><Label>Wedding Date</Label><Input type="date" value={form.weddingDate || ""} onChange={e => setForm(f => ({ ...f, weddingDate: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Package Amount (₹)</Label><Input type="number" value={form.packageAmount || ""} onChange={e => setForm(f => ({ ...f, packageAmount: Number(e.target.value) }))} placeholder="150000" /></div>
+              <div className="space-y-1.5 col-span-2">
                 <Label>Status</Label>
                 <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label>Package Amount (₹)</Label>
-                <Input type="number" value={form.packageAmount || ""} onChange={e => setForm(f => ({ ...f, packageAmount: Number(e.target.value) }))} placeholder="250000" />
-              </div>
-              <div className="space-y-1">
-                <Label>Wedding Date</Label>
-                <Input type="date" value={form.weddingDate || ""} onChange={e => setForm(f => ({ ...f, weddingDate: e.target.value }))} />
-              </div>
-              <div className="space-y-1">
-                <Label>City</Label>
-                <Input value={form.city || ""} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Lucknow" />
-              </div>
-              <div className="space-y-1 col-span-2">
-                <Label>Venue</Label>
-                <Input value={form.venue || ""} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} placeholder="Hotel/Venue name" />
-              </div>
               <div className="space-y-2 col-span-2">
                 <Label>Functions</Label>
                 <div className="flex flex-wrap gap-2">
                   {FUNCTIONS.map(fn => (
-                    <button
-                      key={fn}
-                      type="button"
-                      onClick={() => toggleFunction(fn)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        form.functions?.includes(fn)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-muted text-muted-foreground border-border hover:border-primary"
-                      }`}
-                    >{fn}</button>
+                    <button key={fn} type="button" onClick={() => toggleFunction(fn)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${form.functions?.includes(fn) ? "border-[#E0533C] bg-orange-50 text-[#E0533C]" : "border-slate-200 text-slate-500 hover:border-slate-300"}`}>
+                      {fn}
+                    </button>
                   ))}
                 </div>
               </div>
             </div>
             <div className="flex gap-3 pt-2">
-              <Button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending} className="flex-1">
+              <button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}
+                className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: "#E0533C" }}>
                 {editing ? "Save Changes" : "Add Client"}
-              </Button>
+              </button>
               <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
             </div>
           </div>
@@ -233,7 +234,7 @@ export default function Clients() {
       <Dialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle>Delete Client?</DialogTitle></DialogHeader>
-          <p className="text-muted-foreground text-sm">This will permanently delete the client and all associated data. This cannot be undone.</p>
+          <p className="text-slate-500 text-sm">This will permanently delete the client and all associated data.</p>
           <div className="flex gap-3 pt-2">
             <Button variant="destructive" onClick={() => deleteId && handleDelete(deleteId)} disabled={deleteMut.isPending} className="flex-1">Delete</Button>
             <Button variant="outline" onClick={() => setDeleteId(null)} className="flex-1">Cancel</Button>
