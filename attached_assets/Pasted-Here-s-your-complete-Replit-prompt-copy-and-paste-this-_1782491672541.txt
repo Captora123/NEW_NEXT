@@ -1,0 +1,169 @@
+Here's your complete Replit prompt — copy and paste this exactly:
+
+Build a full-stack CRM web application for Captora Photography Company — a wedding photography studio based in Lucknow, India. Use React for frontend, Node.js + Express for backend, and PostgreSQL (or SQLite for simplicity) for the database. The app should have a clean, modern dark dashboard UI with gold accents matching a premium photography brand.
+
+AUTHENTICATION
+
+Admin login with username and password
+JWT-based session management
+Single admin panel (no multi-user roles needed for now)
+
+
+MODULE 1 — CLIENT MANAGEMENT
+
+Add new client with: name, phone, WhatsApp number, email, wedding date, venue, city, functions required (Haldi, Mehendi, Sangeet, Wedding, Reception — multi-select checkboxes)
+Client status pipeline: Lead → Contacted → Quoted → Advance Paid → Confirmed → Shoot Done → Editing → Delivered → Completed
+Move client through pipeline stages with one click
+View all clients in a Kanban board by status OR as a sortable table
+Search and filter clients by name, date, status, city
+Each client has a full profile page showing all details, payment history, shoot assignments, and notes
+Add internal notes to each client (with timestamps)
+WhatsApp quick-message button that opens WhatsApp with pre-filled message
+
+
+MODULE 2 — SHOOT MANAGEMENT
+
+Create a shoot/event linked to a client
+Fields: shoot date, shoot time, venue/location, functions covered, team assigned (select from staff list), special instructions, shoot status (Scheduled / In Progress / Done)
+Shoot calendar view showing all upcoming shoots by date
+Today's shoots highlighted on dashboard
+Equipment checklist per shoot (customizable items)
+Post-shoot: mark as done, add delivery notes
+
+
+MODULE 3 — PAYMENT MANAGEMENT (CLIENT PAYMENTS)
+
+Each client has a total package amount
+Add payment installments: Advance, Pre-wedding, Before wedding, After delivery — with amount, date, payment mode (Cash/UPI/Bank Transfer/Cheque)
+Auto-calculate: Total received, Total pending, Balance due
+Payment status badge: Paid / Partial / Pending
+Alert/highlight clients with overdue or upcoming payments
+Generate a simple payment receipt (PDF or printable view) per payment
+
+
+MODULE 4 — FREELANCER MANAGEMENT
+
+Add freelancers: name, role (Candid Photographer / Traditional Photographer / Cinematographer / Videographer / Drone Pilot / Content Creator / Photo Editor / Video Editor), phone, bank account details, per-shoot rate
+Assign freelancers to specific shoots
+After shoot is marked done: auto-calculate what is owed to each freelancer
+Track freelancer payment status per shoot: Paid / Pending
+Freelancer payment history and total paid/due per person
+Total freelancer cost auto-calculated per shoot and per month
+
+
+MODULE 5 — STAFF/EMPLOYEE MANAGEMENT
+
+Add permanent employees: name, role, monthly salary, joining date, phone
+Monthly salary tracker: mark salary as Paid / Pending for each month
+Salary history per employee
+Total monthly salary expense auto-calculated
+
+
+MODULE 6 — EXPENSE TRACKER
+
+Add business expenses: category (Equipment / Travel / Office / Marketing / Software / Miscellaneous), amount, date, description, paid by (Cash/UPI/Card)
+Monthly and yearly expense summary
+Ad spend tracking category specifically for Meta/Google ads
+
+
+MODULE 7 — PROFIT & LOSS CALCULATOR (AUTO)
+
+The most important module. Auto-calculates everything:
+
+Total revenue received (from all client payments this month/year)
+Total freelancer payments made
+Total employee salaries paid
+Total business expenses
+Net Profit = Revenue - Freelancer Costs - Salaries - Expenses
+Show as a clean dashboard card: Revenue | Expenses | Profit with color indicators (green/red)
+Monthly P&L chart (bar or line graph)
+Filter by month and year
+
+
+MODULE 8 — TEAM SHOOT PLANNER
+
+For each confirmed shoot, build a team sheet:
+
+Select which team members/freelancers are assigned
+Set call time per person
+Add location/venue details
+Generate a shareable team brief (WhatsApp-friendly text format)
+
+
+View all assignments per team member across upcoming shoots
+
+
+MODULE 9 — DELIVERABLES TRACKER
+
+Per client, track delivery checklist:
+
+ Edited photos delivered
+ Cinematic highlight video
+ Traditional video
+ Instagram reels
+ Album ordered
+ Album delivered
+ Raw data copied to drive
+ Magazine delivered
+ Photo frame delivered
+
+
+Status: In Progress / Done with date completed
+Dashboard shows clients with pending deliverables
+
+
+MODULE 10 — DASHBOARD (HOME)
+
+Show at a glance:
+
+Today's shoots
+This month's revenue vs last month
+Total leads this month
+Confirmed bookings count
+Pending payments total (how much clients still owe)
+Pending freelancer payments (how much you owe freelancers)
+Net profit this month
+Upcoming shoots this week (next 7 days)
+Clients with overdue payments
+Quick action buttons: Add Client, Add Shoot, Add Payment, Add Expense
+
+
+MODULE 11 — INSTAGRAM/AD CONTENT IDEAS LOG
+
+Add content ideas: title, type (Reel / Post / Story / Ad), status (Idea / Script Written / Shot / Editing / Posted), assigned to (staff member), due date
+Simple Kanban: Idea → In Progress → Done
+Link content ideas to actual shoots for reference
+
+
+TECHNICAL REQUIREMENTS
+
+Fully responsive — works on mobile and desktop
+Dark theme UI with gold (#C5A059) accent color, clean sidebar navigation
+All currency in Indian Rupees (₹)
+Date format: DD/MM/YYYY
+Indian number formatting (lakhs/thousands)
+Fast — no heavy dependencies
+Data persists in database (not just local state)
+RESTful API backend
+All forms have validation
+Success/error toast notifications
+Confirmation dialogs before deleting anything
+
+
+PAGES/ROUTES
+
+/dashboard — home overview
+/clients — client list and Kanban
+/clients/:id — individual client profile
+/shoots — shoot calendar and list
+/payments — payment overview
+/freelancers — freelancer management
+/staff — employee management
+/expenses — expense tracker
+/profit — P&L dashboard
+/deliverables — delivery tracker
+/content — content ideas board
+/team-planner — shoot team builder
+
+
+Start by building the database schema, then the backend API, then the frontend. Make sure all modules are connected — for example, when a shoot is marked done it should trigger freelancer payment calculation, and when a client payment is added it should update the P&L automatically. Build this as a complete, production-ready application.

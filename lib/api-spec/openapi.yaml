@@ -1,22 +1,31 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Captora Photography CRM API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: clients
+  - name: shoots
+  - name: payments
+  - name: freelancers
+  - name: staff
+  - name: expenses
+  - name: pnl
+  - name: deliverables
+  - name: content
+  - name: dashboard
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +33,1876 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # AUTH
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthToken"
+        "401":
+          description: Unauthorized
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+
+  # DASHBOARD
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard summary stats
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/upcoming-shoots:
+    get:
+      operationId: getUpcomingShoots
+      tags: [dashboard]
+      summary: Get shoots in the next 7 days
+      responses:
+        "200":
+          description: Upcoming shoots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Shoot"
+
+  /dashboard/overdue-payments:
+    get:
+      operationId: getOverduePaymentClients
+      tags: [dashboard]
+      summary: Clients with overdue payments
+      responses:
+        "200":
+          description: Clients with overdue payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Client"
+
+  # CLIENTS
+  /clients:
+    get:
+      operationId: listClients
+      tags: [clients]
+      summary: List all clients
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: city
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Client"
+    post:
+      operationId: createClient
+      tags: [clients]
+      summary: Create a new client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+
+  /clients/{id}:
+    get:
+      operationId: getClient
+      tags: [clients]
+      summary: Get client by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Client details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientDetail"
+    patch:
+      operationId: updateClient
+      tags: [clients]
+      summary: Update a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientUpdate"
+      responses:
+        "200":
+          description: Updated client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+    delete:
+      operationId: deleteClient
+      tags: [clients]
+      summary: Delete a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /clients/{id}/status:
+    patch:
+      operationId: updateClientStatus
+      tags: [clients]
+      summary: Move client to a new pipeline stage
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientStatusUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+
+  /clients/{id}/notes:
+    get:
+      operationId: listClientNotes
+      tags: [clients]
+      summary: List notes for a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientNote"
+    post:
+      operationId: addClientNote
+      tags: [clients]
+      summary: Add a note to a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientNoteInput"
+      responses:
+        "201":
+          description: Created note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientNote"
+
+  # SHOOTS
+  /shoots:
+    get:
+      operationId: listShoots
+      tags: [shoots]
+      summary: List all shoots
+      parameters:
+        - name: clientId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: date
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of shoots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Shoot"
+    post:
+      operationId: createShoot
+      tags: [shoots]
+      summary: Create a shoot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShootInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shoot"
+
+  /shoots/{id}:
+    get:
+      operationId: getShoot
+      tags: [shoots]
+      summary: Get shoot by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Shoot details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShootDetail"
+    patch:
+      operationId: updateShoot
+      tags: [shoots]
+      summary: Update a shoot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShootUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shoot"
+    delete:
+      operationId: deleteShoot
+      tags: [shoots]
+      summary: Delete a shoot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /shoots/{id}/status:
+    patch:
+      operationId: updateShootStatus
+      tags: [shoots]
+      summary: Update shoot status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShootStatusUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shoot"
+
+  /shoots/{id}/team:
+    get:
+      operationId: getShootTeam
+      tags: [shoots]
+      summary: Get team assignments for a shoot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Team assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShootTeamMember"
+    post:
+      operationId: assignTeamToShoot
+      tags: [shoots]
+      summary: Assign team members to shoot
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShootTeamInput"
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShootTeamMember"
+
+  # PAYMENTS (CLIENT)
+  /payments:
+    get:
+      operationId: listPayments
+      tags: [payments]
+      summary: List all client payments
+      parameters:
+        - name: clientId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+    post:
+      operationId: createPayment
+      tags: [payments]
+      summary: Add a payment installment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments/{id}:
+    patch:
+      operationId: updatePayment
+      tags: [payments]
+      summary: Update a payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+    delete:
+      operationId: deletePayment
+      tags: [payments]
+      summary: Delete a payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /payments/summary:
+    get:
+      operationId: getPaymentsSummary
+      tags: [payments]
+      summary: Get payment summary totals
+      responses:
+        "200":
+          description: Payment summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentSummary"
+
+  # FREELANCERS
+  /freelancers:
+    get:
+      operationId: listFreelancers
+      tags: [freelancers]
+      summary: List all freelancers
+      responses:
+        "200":
+          description: List of freelancers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Freelancer"
+    post:
+      operationId: createFreelancer
+      tags: [freelancers]
+      summary: Add a freelancer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FreelancerInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Freelancer"
+
+  /freelancers/{id}:
+    get:
+      operationId: getFreelancer
+      tags: [freelancers]
+      summary: Get freelancer by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Freelancer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FreelancerDetail"
+    patch:
+      operationId: updateFreelancer
+      tags: [freelancers]
+      summary: Update a freelancer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FreelancerUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Freelancer"
+    delete:
+      operationId: deleteFreelancer
+      tags: [freelancers]
+      summary: Delete a freelancer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /freelancers/{id}/payments:
+    get:
+      operationId: listFreelancerPayments
+      tags: [freelancers]
+      summary: Get payment history for a freelancer
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Freelancer payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FreelancerPayment"
+    post:
+      operationId: addFreelancerPayment
+      tags: [freelancers]
+      summary: Record a freelancer payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FreelancerPaymentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FreelancerPayment"
+
+  # STAFF
+  /staff:
+    get:
+      operationId: listStaff
+      tags: [staff]
+      summary: List all staff/employees
+      responses:
+        "200":
+          description: List of staff
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StaffMember"
+    post:
+      operationId: createStaffMember
+      tags: [staff]
+      summary: Add a staff member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StaffInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffMember"
+
+  /staff/{id}:
+    get:
+      operationId: getStaffMember
+      tags: [staff]
+      summary: Get staff member by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Staff member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffDetail"
+    patch:
+      operationId: updateStaffMember
+      tags: [staff]
+      summary: Update a staff member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StaffUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffMember"
+    delete:
+      operationId: deleteStaffMember
+      tags: [staff]
+      summary: Delete a staff member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /staff/{id}/salary:
+    get:
+      operationId: listSalaryRecords
+      tags: [staff]
+      summary: List salary records for a staff member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Salary records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SalaryRecord"
+    post:
+      operationId: addSalaryRecord
+      tags: [staff]
+      summary: Add or update monthly salary record
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SalaryRecordInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryRecord"
+
+  # EXPENSES
+  /expenses:
+    get:
+      operationId: listExpenses
+      tags: [expenses]
+      summary: List all expenses
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Expense"
+    post:
+      operationId: createExpense
+      tags: [expenses]
+      summary: Add an expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+
+  /expenses/{id}:
+    patch:
+      operationId: updateExpense
+      tags: [expenses]
+      summary: Update an expense
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExpenseUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Expense"
+    delete:
+      operationId: deleteExpense
+      tags: [expenses]
+      summary: Delete an expense
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /expenses/summary:
+    get:
+      operationId: getExpenseSummary
+      tags: [expenses]
+      summary: Get monthly/yearly expense summary
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Expense summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExpenseSummary"
+
+  # P&L
+  /pnl/monthly:
+    get:
+      operationId: getMonthlyPnL
+      tags: [pnl]
+      summary: Get monthly P&L report
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Monthly P&L
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PnLReport"
+
+  /pnl/chart:
+    get:
+      operationId: getPnLChart
+      tags: [pnl]
+      summary: Get P&L chart data for multiple months
+      parameters:
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Chart data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PnLChartPoint"
+
+  # DELIVERABLES
+  /deliverables:
+    get:
+      operationId: listDeliverables
+      tags: [deliverables]
+      summary: List all deliverables
+      parameters:
+        - name: clientId
+          in: query
+          schema:
+            type: integer
+        - name: pending
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of deliverables
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Deliverable"
+
+  /deliverables/{clientId}:
+    get:
+      operationId: getClientDeliverables
+      tags: [deliverables]
+      summary: Get deliverables for a client
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Client deliverables
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deliverable"
+    put:
+      operationId: upsertClientDeliverables
+      tags: [deliverables]
+      summary: Update deliverables for a client
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeliverableInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Deliverable"
+
+  # CONTENT IDEAS
+  /content:
+    get:
+      operationId: listContentIdeas
+      tags: [content]
+      summary: List all content ideas
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of content ideas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ContentIdea"
+    post:
+      operationId: createContentIdea
+      tags: [content]
+      summary: Create a content idea
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentIdeaInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentIdea"
+
+  /content/{id}:
+    patch:
+      operationId: updateContentIdea
+      tags: [content]
+      summary: Update a content idea
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContentIdeaUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentIdea"
+    delete:
+      operationId: deleteContentIdea
+      tags: [content]
+      summary: Delete a content idea
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    LoginInput:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    AuthToken:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/AdminUser"
+
+    AdminUser:
+      type: object
+      required: [id, username]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+
+    DashboardSummary:
+      type: object
+      required:
+        - todayShootsCount
+        - thisMonthRevenue
+        - lastMonthRevenue
+        - totalLeadsThisMonth
+        - confirmedBookingsCount
+        - pendingPaymentsTotal
+        - pendingFreelancerPaymentsTotal
+        - netProfitThisMonth
+      properties:
+        todayShootsCount:
+          type: integer
+        thisMonthRevenue:
+          type: number
+        lastMonthRevenue:
+          type: number
+        totalLeadsThisMonth:
+          type: integer
+        confirmedBookingsCount:
+          type: integer
+        pendingPaymentsTotal:
+          type: number
+        pendingFreelancerPaymentsTotal:
+          type: number
+        netProfitThisMonth:
+          type: number
+        pendingDeliverablesCount:
+          type: integer
+
+    Client:
+      type: object
+      required: [id, name, phone, status, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        weddingDate:
+          type: ["string", "null"]
+        venue:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        functions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        packageAmount:
+          type: ["number", "null"]
+        totalPaid:
+          type: number
+        totalPending:
+          type: number
+        createdAt:
+          type: string
+
+    ClientDetail:
+      allOf:
+        - $ref: "#/components/schemas/Client"
+        - type: object
+          properties:
+            notes:
+              type: array
+              items:
+                $ref: "#/components/schemas/ClientNote"
+            payments:
+              type: array
+              items:
+                $ref: "#/components/schemas/Payment"
+            shoots:
+              type: array
+              items:
+                $ref: "#/components/schemas/Shoot"
+            deliverables:
+              $ref: "#/components/schemas/Deliverable"
+
+    ClientInput:
+      type: object
+      required: [name, phone]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: string
+        email:
+          type: string
+        weddingDate:
+          type: string
+        venue:
+          type: string
+        city:
+          type: string
+        functions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        packageAmount:
+          type: number
+
+    ClientUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        whatsapp:
+          type: string
+        email:
+          type: string
+        weddingDate:
+          type: string
+        venue:
+          type: string
+        city:
+          type: string
+        functions:
+          type: array
+          items:
+            type: string
+        packageAmount:
+          type: number
+
+    ClientStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    ClientNote:
+      type: object
+      required: [id, clientId, content, createdAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        content:
+          type: string
+        createdAt:
+          type: string
+
+    ClientNoteInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+
+    Shoot:
+      type: object
+      required: [id, clientId, shootDate, status, createdAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        clientName:
+          type: ["string", "null"]
+        shootDate:
+          type: string
+        shootTime:
+          type: ["string", "null"]
+        venue:
+          type: ["string", "null"]
+        functions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        specialInstructions:
+          type: ["string", "null"]
+        deliveryNotes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    ShootDetail:
+      allOf:
+        - $ref: "#/components/schemas/Shoot"
+        - type: object
+          properties:
+            team:
+              type: array
+              items:
+                $ref: "#/components/schemas/ShootTeamMember"
+            equipmentChecklist:
+              type: array
+              items:
+                type: string
+
+    ShootInput:
+      type: object
+      required: [clientId, shootDate]
+      properties:
+        clientId:
+          type: integer
+        shootDate:
+          type: string
+        shootTime:
+          type: string
+        venue:
+          type: string
+        functions:
+          type: array
+          items:
+            type: string
+        specialInstructions:
+          type: string
+        equipmentChecklist:
+          type: array
+          items:
+            type: string
+
+    ShootUpdate:
+      type: object
+      properties:
+        shootDate:
+          type: string
+        shootTime:
+          type: string
+        venue:
+          type: string
+        functions:
+          type: array
+          items:
+            type: string
+        specialInstructions:
+          type: string
+        deliveryNotes:
+          type: string
+        equipmentChecklist:
+          type: array
+          items:
+            type: string
+
+    ShootStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+        deliveryNotes:
+          type: string
+
+    ShootTeamMember:
+      type: object
+      required: [id, shootId, memberId, memberType]
+      properties:
+        id:
+          type: integer
+        shootId:
+          type: integer
+        memberId:
+          type: integer
+        memberType:
+          type: string
+        memberName:
+          type: ["string", "null"]
+        role:
+          type: ["string", "null"]
+        callTime:
+          type: ["string", "null"]
+
+    ShootTeamInput:
+      type: object
+      required: [members]
+      properties:
+        members:
+          type: array
+          items:
+            type: object
+            required: [memberId, memberType]
+            properties:
+              memberId:
+                type: integer
+              memberType:
+                type: string
+              callTime:
+                type: string
+
+    Payment:
+      type: object
+      required: [id, clientId, amount, paymentDate, installmentType, mode, createdAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        clientName:
+          type: ["string", "null"]
+        amount:
+          type: number
+        paymentDate:
+          type: string
+        installmentType:
+          type: string
+        mode:
+          type: string
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    PaymentInput:
+      type: object
+      required: [clientId, amount, paymentDate, installmentType, mode]
+      properties:
+        clientId:
+          type: integer
+        amount:
+          type: number
+        paymentDate:
+          type: string
+        installmentType:
+          type: string
+        mode:
+          type: string
+        notes:
+          type: string
+
+    PaymentUpdate:
+      type: object
+      properties:
+        amount:
+          type: number
+        paymentDate:
+          type: string
+        installmentType:
+          type: string
+        mode:
+          type: string
+        notes:
+          type: string
+
+    PaymentSummary:
+      type: object
+      required: [totalReceived, totalPending]
+      properties:
+        totalReceived:
+          type: number
+        totalPending:
+          type: number
+
+    Freelancer:
+      type: object
+      required: [id, name, role, phone, perShootRate, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+        phone:
+          type: string
+        bankDetails:
+          type: ["string", "null"]
+        perShootRate:
+          type: number
+        totalEarned:
+          type: number
+        totalPaid:
+          type: number
+        totalDue:
+          type: number
+        createdAt:
+          type: string
+
+    FreelancerDetail:
+      allOf:
+        - $ref: "#/components/schemas/Freelancer"
+        - type: object
+          properties:
+            payments:
+              type: array
+              items:
+                $ref: "#/components/schemas/FreelancerPayment"
+
+    FreelancerInput:
+      type: object
+      required: [name, role, phone, perShootRate]
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        phone:
+          type: string
+        bankDetails:
+          type: string
+        perShootRate:
+          type: number
+
+    FreelancerUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        phone:
+          type: string
+        bankDetails:
+          type: string
+        perShootRate:
+          type: number
+
+    FreelancerPayment:
+      type: object
+      required: [id, freelancerId, amount, paymentDate, status, createdAt]
+      properties:
+        id:
+          type: integer
+        freelancerId:
+          type: integer
+        shootId:
+          type: ["integer", "null"]
+        amount:
+          type: number
+        paymentDate:
+          type: string
+        status:
+          type: string
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    FreelancerPaymentInput:
+      type: object
+      required: [amount, paymentDate, status]
+      properties:
+        shootId:
+          type: integer
+        amount:
+          type: number
+        paymentDate:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+
+    StaffMember:
+      type: object
+      required: [id, name, role, monthlySalary, joiningDate, phone, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        role:
+          type: string
+        monthlySalary:
+          type: number
+        joiningDate:
+          type: string
+        phone:
+          type: string
+        createdAt:
+          type: string
+
+    StaffDetail:
+      allOf:
+        - $ref: "#/components/schemas/StaffMember"
+        - type: object
+          properties:
+            salaryRecords:
+              type: array
+              items:
+                $ref: "#/components/schemas/SalaryRecord"
+
+    StaffInput:
+      type: object
+      required: [name, role, monthlySalary, joiningDate, phone]
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        monthlySalary:
+          type: number
+        joiningDate:
+          type: string
+        phone:
+          type: string
+
+    StaffUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        monthlySalary:
+          type: number
+        phone:
+          type: string
+
+    SalaryRecord:
+      type: object
+      required: [id, staffId, month, year, amount, status, createdAt]
+      properties:
+        id:
+          type: integer
+        staffId:
+          type: integer
+        month:
+          type: integer
+        year:
+          type: integer
+        amount:
+          type: number
+        status:
+          type: string
+        paidDate:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    SalaryRecordInput:
+      type: object
+      required: [month, year, amount, status]
+      properties:
+        month:
+          type: integer
+        year:
+          type: integer
+        amount:
+          type: number
+        status:
+          type: string
+        paidDate:
+          type: string
+
+    Expense:
+      type: object
+      required: [id, category, amount, expenseDate, paidBy, createdAt]
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        amount:
+          type: number
+        expenseDate:
+          type: string
+        description:
+          type: ["string", "null"]
+        paidBy:
+          type: string
+        createdAt:
+          type: string
+
+    ExpenseInput:
+      type: object
+      required: [category, amount, expenseDate, paidBy]
+      properties:
+        category:
+          type: string
+        amount:
+          type: number
+        expenseDate:
+          type: string
+        description:
+          type: string
+        paidBy:
+          type: string
+
+    ExpenseUpdate:
+      type: object
+      properties:
+        category:
+          type: string
+        amount:
+          type: number
+        expenseDate:
+          type: string
+        description:
+          type: string
+        paidBy:
+          type: string
+
+    ExpenseSummary:
+      type: object
+      required: [totalExpenses, byCategory]
+      properties:
+        totalExpenses:
+          type: number
+        byCategory:
+          type: array
+          items:
+            type: object
+            required: [category, total]
+            properties:
+              category:
+                type: string
+              total:
+                type: number
+
+    PnLReport:
+      type: object
+      required:
+        - month
+        - year
+        - totalRevenue
+        - totalFreelancerCosts
+        - totalSalaries
+        - totalExpenses
+        - netProfit
+      properties:
+        month:
+          type: integer
+        year:
+          type: integer
+        totalRevenue:
+          type: number
+        totalFreelancerCosts:
+          type: number
+        totalSalaries:
+          type: number
+        totalExpenses:
+          type: number
+        netProfit:
+          type: number
+
+    PnLChartPoint:
+      type: object
+      required: [month, year, revenue, expenses, profit]
+      properties:
+        month:
+          type: integer
+        year:
+          type: integer
+        revenue:
+          type: number
+        expenses:
+          type: number
+        profit:
+          type: number
+
+    Deliverable:
+      type: object
+      required: [id, clientId]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        editedPhotos:
+          type: boolean
+        cinematicHighlight:
+          type: boolean
+        traditionalVideo:
+          type: boolean
+        instagramReels:
+          type: boolean
+        albumOrdered:
+          type: boolean
+        albumDelivered:
+          type: boolean
+        rawDataCopied:
+          type: boolean
+        magazineDelivered:
+          type: boolean
+        photoFrameDelivered:
+          type: boolean
+        status:
+          type: string
+        completedAt:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+
+    DeliverableInput:
+      type: object
+      properties:
+        editedPhotos:
+          type: boolean
+        cinematicHighlight:
+          type: boolean
+        traditionalVideo:
+          type: boolean
+        instagramReels:
+          type: boolean
+        albumOrdered:
+          type: boolean
+        albumDelivered:
+          type: boolean
+        rawDataCopied:
+          type: boolean
+        magazineDelivered:
+          type: boolean
+        photoFrameDelivered:
+          type: boolean
+        status:
+          type: string
+        completedAt:
+          type: string
+
+    ContentIdea:
+      type: object
+      required: [id, title, type, status, createdAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        assignedTo:
+          type: ["string", "null"]
+        dueDate:
+          type: ["string", "null"]
+        shootId:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    ContentIdeaInput:
+      type: object
+      required: [title, type]
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        assignedTo:
+          type: string
+        dueDate:
+          type: string
+        shootId:
+          type: integer
+
+    ContentIdeaUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        assignedTo:
+          type: string
+        dueDate:
+          type: string
+        shootId:
+          type: integer
