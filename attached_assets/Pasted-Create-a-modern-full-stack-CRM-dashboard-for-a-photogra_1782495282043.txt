@@ -1,0 +1,35 @@
+Create a modern, full-stack CRM dashboard for a photography studio business using a sleek dark theme. The application must have a fixed sidebar navigation menu on the left and a dynamic main content area on the right. 
+
+Ensure the layout is clean, highly polished, professional, and fully responsive.
+
+### 1. NAVIGATION & LAYOUT
+•⁠  ⁠*Left Sidebar Menu:* Dashboard, Projects, Events, Post-Production, Finance, and Settings.
+•⁠  ⁠*Top Bar:* Search functionality, notifications icon, and user profile avatar with name/role.
+
+### 2. CORE PAGES & FEATURES
+
+#### 💳 Dashboard (Overview Page)
+•⁠  ⁠*Top Summary Cards:* High-level metrics for Total Revenue, Cash Received, and Outstanding Payments.
+•⁠  ⁠*Main Charts:* An interactive graph (e.g., line or bar chart) showing "Payments Received" over time.
+•⁠  ⁠*Side Panel:* A scrollable list showing "Team Wages Due" or immediate pending actions.
+
+#### 📁 Projects & Events
+•⁠  ⁠*Upcoming Events:* A dynamic, interactive Calendar view where events can be selected, edited, or marked on specific dates.
+•⁠  ⁠*Event Details:* Inside each event/project, include date, time, location, client details, and designated team assignments.
+
+#### 💾 Post-Production (Storage Tracking)
+•⁠  ⁠*Storage Workflow Tracker:* A dedicated system to manage raw footage and deliverables.
+•⁠  ⁠*Data Columns/Fields:* Team member name, memory cards used, total data size (GB/TB), Main Storage status, Backup Storage status, and the name of the person responsible for copying data.
+
+#### 📊 Finance & Expense Management
+•⁠  ⁠*Financial Matrix:* Cards showing Gross Profit, Net Profit, Average Project Value, and Company Overhead.
+•⁠  ⁠*Expense Tracker:* Modules to input and track individual project expenses, freelancer payments, and recurring business costs.
+
+#### ⚙️ Settings (Admin Panel)
+•⁠  ⁠*Studio Branding:* Fields to upload/change the studio logo, business name, and tagline.
+•⁠  ⁠*System Customization:* Options to change the application theme colors, reset passwords, and manage portal user access permissions (Admins, Team Members, Freelancers).
+
+### 3. TECH STACK & DESIGN
+•⁠  ⁠*Backend:* Node.js Express server to handle API routes for all sections (Finance, Events, Post-Production).
+•⁠  ⁠*Frontend Styling:* Modern Tailwind CSS with a rich dark-mode color palette (deep grays, slate, neon/vibrant accents for buttons and metrics).
+-

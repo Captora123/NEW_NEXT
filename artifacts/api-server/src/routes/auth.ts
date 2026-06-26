@@ -41,6 +41,32 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   res.json({ token, user: { id: user.id, username: user.username } });
 });
 
+router.post("/auth/change-password", async (req, res): Promise<void> => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Basic ")) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const token = authHeader.slice(6);
+  const payload = verifyToken(token);
+  if (!payload) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+  if (!currentPassword || !newPassword) {
+    res.status(400).json({ error: "currentPassword and newPassword are required" });
+    return;
+  }
+  const [user] = await db.select().from(adminUsersTable).where(eq(adminUsersTable.username, payload.username));
+  if (!user || user.password !== currentPassword) {
+    res.status(401).json({ error: "Current password is incorrect" });
+    return;
+  }
+  await db.update(adminUsersTable).set({ password: newPassword }).where(eq(adminUsersTable.username, payload.username));
+  res.json({ success: true });
+});
+
 router.get("/auth/me", async (req, res): Promise<void> => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {

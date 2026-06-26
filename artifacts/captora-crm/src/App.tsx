@@ -18,6 +18,7 @@ import Profit from "@/pages/profit";
 import Deliverables from "@/pages/deliverables";
 import Content from "@/pages/content";
 import TeamPlanner from "@/pages/team-planner";
+import Settings from "@/pages/settings";
 import { AppLayout } from "@/components/layout/app-layout";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/deliverables"><ProtectedRoute component={Deliverables} path="/deliverables" /></Route>
       <Route path="/content"><ProtectedRoute component={Content} path="/content" /></Route>
       <Route path="/team-planner"><ProtectedRoute component={TeamPlanner} path="/team-planner" /></Route>
+      <Route path="/settings"><ProtectedRoute component={Settings} path="/settings" /></Route>
       <Route component={NotFound} />
     </Switch>
   );
