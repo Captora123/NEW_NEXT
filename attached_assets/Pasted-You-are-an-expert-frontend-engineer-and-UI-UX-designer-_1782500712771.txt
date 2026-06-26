@@ -1,0 +1,31 @@
+You are an expert frontend engineer and UI/UX designer. I have attached a screenshot of my target dashboard layout (from my file "Studio Ops_Demo.mp4"). Please completely refactor my current application UI to match this exact layout, color scheme, spacing, and functionality.
+
+Strictly adhere to the visual elements present in the screenshot:
+
+1. SIDEBAR NAVIGATION (Left Panel):
+- Implement a fixed-width, dark slate navy blue sidebar (#1E293B).
+- Top: Display a clean, circular white logo profile avatar placeholder next to the workspace branding text "Test 1" with a smaller subtitle "Wedding Photography & Films".
+- Navigation Links: Vertical list with clean line-art icons for "Dashboard" (active), "Projects", "Events", "Post Production", "Finance", and "Settings".
+- Bottom: A "Sign Out" action button pinned to the very bottom left corner.
+
+2. TOP HEADER SECTION:
+- Main title "Dashboard" in a bold, prominent dark slate font (#0F172A).
+- Subtitle right below it showing the financial year string "FY 2026-27" in a muted gray font.
+- Top Right: A clean, rounded outline selector button displaying a calendar icon and the text "FY 2026-27" with a downward arrow chevron.
+
+3. TOP METRIC CARDS GRID (3-Column Row):
+- Create three distinct white, rounded-xl (12px) container cards side-by-side with subtle 1px gray borders.
+- Card 1 (TOTAL REVENUE): Displays a muted gray header, a large bold Indian Rupee value "₹14,57,000", and a small bottom label "10 projects".
+- Card 2 (RECEIVED): Displays a muted gray header, a large bold value "₹70,000", and a green progress badge stating "5% collected".
+- Card 3 (OUTSTANDING): Displays a muted gray header, a large bold value "₹13,87,000", and a subtitle "from clients".
+
+4. MAIN BODY DUAL-COLUMN LAYOUT:
+- Left Column (approx. 65% width): A large white card container titled "Payments Received (Last 6 Months)". It must feature a responsive bar chart with clean X-axis month markers (Jan 26, Mar 26, May 26, Jun 26) and a sharp, dominant coral-orange vertical bar (#E0533C) indicating active data spikes.
+- Right Column (approx. 35% width): A white card container titled "Team Wages Due". Inside, render a clean list structure detailing freelancer staff names (Madhur, Deva, kawal, rahul), their designated role ("Photographer"), and their corresponding outstanding balances highlighted in bold coral-orange text (e.g., ₹20,000, ₹12,000).
+
+5. BOTTOM RECENT EVENTS OVERVIEW:
+- Create a full-width section header at the bottom titled "Upcoming Events" on the left, with a clickable muted link "View all ->" aligned to the far right. Below it, initialize a clean, padded data table layout with headers for "Date", "Client", "Event", and "City".
+
+6. FRAMEWORK & INTERACTIVITY UTILITIES:
+- Build this layout using semantic structural components, Tailwind CSS for all utility styling, and custom modular reactive states so every button, dropdown filter, and sidebar navigation link is fully clickable and functional.
+- Maintain my current backend business logic and API data arrays—only update the visual layout wraps, styling tokens, alignment rules, and components to accurately clone this screenshot.
