@@ -228,7 +228,7 @@ export default function Dashboard() {
 
       {/* ── Upcoming Events ── */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-800">Upcoming Events</h2>
           <Link href="/shoots">
             <button className="text-xs font-semibold hover:underline transition-all" style={{ color: CORAL }}>
@@ -236,44 +236,71 @@ export default function Dashboard() {
             </button>
           </Link>
         </div>
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>Date</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>Client</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>Event</th>
-              <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>City</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!upcomingShoots?.length ? (
-              <tr>
-                <td colSpan={4} className="px-6 py-10 text-center text-sm text-slate-400">
-                  No upcoming events scheduled.
-                </td>
+
+        {/* Mobile cards */}
+        <div className="sm:hidden divide-y divide-slate-100">
+          {!upcomingShoots?.length ? (
+            <p className="px-4 py-8 text-center text-sm text-slate-400">No upcoming events scheduled.</p>
+          ) : upcomingShoots.slice(0, 6).map(shoot => (
+            <div key={shoot.id} className="px-4 py-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">{shoot.clientName ?? "—"}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{shoot.shootDate}</p>
+                </div>
+                <div className="flex flex-wrap gap-1 justify-end">
+                  {shoot.functions?.length
+                    ? shoot.functions.map(fn => (
+                        <span key={fn} className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-50 border border-orange-200" style={{ color: CORAL }}>{fn}</span>
+                      ))
+                    : <span className="text-xs text-slate-400">Shoot</span>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50">
+                <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>Date</th>
+                <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>Client</th>
+                <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>Event</th>
+                <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>Venue</th>
               </tr>
-            ) : (
-              upcomingShoots.slice(0, 6).map(shoot => (
-                <tr key={shoot.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-sm text-slate-600">{shoot.shootDate}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-slate-800">{shoot.clientName ?? "—"}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {shoot.functions?.length
-                        ? shoot.functions.map(fn => (
-                            <span key={fn} className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-50 border border-orange-200" style={{ color: CORAL }}>
-                              {fn}
-                            </span>
-                          ))
-                        : <span className="text-sm text-slate-400">Shoot</span>}
-                    </div>
+            </thead>
+            <tbody>
+              {!upcomingShoots?.length ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-sm text-slate-400">
+                    No upcoming events scheduled.
                   </td>
-                  <td className="px-6 py-4 text-sm text-slate-500">{shoot.venue ?? "—"}</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                upcomingShoots.slice(0, 6).map(shoot => (
+                  <tr key={shoot.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{shoot.shootDate}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-slate-800">{shoot.clientName ?? "—"}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {shoot.functions?.length
+                          ? shoot.functions.map(fn => (
+                              <span key={fn} className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-50 border border-orange-200" style={{ color: CORAL }}>
+                                {fn}
+                              </span>
+                            ))
+                          : <span className="text-sm text-slate-400">Shoot</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500">{shoot.venue ?? "—"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -207,8 +207,8 @@ function PaymentsTab() {
   };
 
   const handleAddClient = () => {
-    if (!clientForm.name || !clientForm.phone) {
-      toast({ variant: "destructive", title: "Name and phone are required." }); return;
+    if (!clientForm.name) {
+      toast({ variant: "destructive", title: "Client name is required." }); return;
     }
     createClientMut.mutate({ data: clientForm }, {
       onSuccess: (newClient) => {
@@ -264,7 +264,7 @@ function PaymentsTab() {
       </div>
 
       {isLoading ? <p className="text-sm text-slate-400">Loading payments...</p> : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
@@ -355,7 +355,7 @@ function PaymentsTab() {
           <DialogHeader><DialogTitle>Add New Client</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5"><Label>Name *</Label><Input value={clientForm.name} onChange={e => setClientForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Rahul Sharma" /></div>
-            <div className="space-y-1.5"><Label>Phone *</Label><Input value={clientForm.phone} onChange={e => setClientForm(f => ({ ...f, phone: e.target.value }))} placeholder="9876543210" /></div>
+            <div className="space-y-1.5"><Label>Phone</Label><Input value={clientForm.phone} onChange={e => setClientForm(f => ({ ...f, phone: e.target.value }))} placeholder="9876543210" /></div>
             <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={clientForm.email || ""} onChange={e => setClientForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" /></div>
             <div className="flex gap-3 pt-2">
               <button onClick={handleAddClient} disabled={createClientMut.isPending} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: CORAL }}>Add Client</button>
@@ -479,7 +479,7 @@ function ExpensesTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Table */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 overflow-x-auto">
           {isLoading ? <p className="p-8 text-sm text-slate-400">Loading...</p> : (
             <table className="w-full text-left">
               <thead>
@@ -680,7 +680,7 @@ function TeamTab() {
             <Plus className="w-4 h-4" />Add Staff
           </button>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
@@ -726,7 +726,7 @@ function TeamTab() {
             <Plus className="w-4 h-4" />Add Freelancer
           </button>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">

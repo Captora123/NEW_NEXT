@@ -78,7 +78,7 @@ export default function Expenses() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Table */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 overflow-x-auto">
           {isLoading ? <div className="p-8 text-slate-400 text-sm">Loading...</div> : (
             <table className="w-full text-left">
               <thead>
