@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: "/clients", label: "Projects", icon: FolderOpen },
   { href: "/shoots", label: "Events", icon: CalendarDays },
   { href: "/deliverables", label: "Post Production", icon: Film },
-  { href: "/profit", label: "Finance", icon: IndianRupee },
+  { href: "/finance", label: "Finance", icon: IndianRupee },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

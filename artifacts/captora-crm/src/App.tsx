@@ -15,6 +15,7 @@ import Freelancers from "@/pages/freelancers";
 import Staff from "@/pages/staff";
 import Expenses from "@/pages/expenses";
 import Profit from "@/pages/profit";
+import Finance from "@/pages/finance";
 import Deliverables from "@/pages/deliverables";
 import Content from "@/pages/content";
 import TeamPlanner from "@/pages/team-planner";
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/staff"><ProtectedRoute component={Staff} path="/staff" /></Route>
       <Route path="/expenses"><ProtectedRoute component={Expenses} path="/expenses" /></Route>
       <Route path="/profit"><ProtectedRoute component={Profit} path="/profit" /></Route>
+      <Route path="/finance"><ProtectedRoute component={Finance} path="/finance" /></Route>
       <Route path="/deliverables"><ProtectedRoute component={Deliverables} path="/deliverables" /></Route>
       <Route path="/content"><ProtectedRoute component={Content} path="/content" /></Route>
       <Route path="/team-planner"><ProtectedRoute component={TeamPlanner} path="/team-planner" /></Route>
