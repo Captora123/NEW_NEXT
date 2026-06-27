@@ -2,20 +2,40 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Camera, Shield, Users, Save, Eye, EyeOff, Palette } from "lucide-react";
+import { useStudio, THEMES, DEFAULT_SERVICE_CATEGORIES } from "@/lib/studio-context";
+import {
+  Camera, Shield, Users, Save, Eye, EyeOff,
+  Palette, Tag, RotateCcw, Plus, X, Check,
+} from "lucide-react";
 
-type Tab = "branding" | "security" | "users";
+type Tab = "branding" | "themes" | "services" | "security";
 
 export default function Settings() {
   const { toast } = useToast();
+  const { config, theme, updateConfig, resetConfig } = useStudio();
+  const ACCENT = theme.accent;
+
   const [tab, setTab] = useState<Tab>("branding");
-  const [branding, setBranding] = useState({ studioName: "Captora Photography", tagline: "Capturing Moments, Crafting Memories", city: "Lucknow, India" });
+  const [branding, setBranding] = useState({ studioName: config.studioName, tagline: config.tagline, city: config.city });
   const [passwords, setPasswords] = useState({ current: "", newPass: "", confirm: "" });
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
 
   const handleSaveBranding = () => {
-    toast({ title: "Branding saved", description: "Studio details updated successfully." });
+    updateConfig({ studioName: branding.studioName, tagline: branding.tagline, city: branding.city });
+    toast({ title: "Branding saved", description: "Studio details updated." });
+  };
+
+  const handleSetTheme = (themeId: string) => {
+    updateConfig({ themeId });
+    toast({ title: `Theme applied: ${THEMES.find(t => t.id === themeId)?.name}` });
+  };
+
+  const handleReset = () => {
+    resetConfig();
+    setBranding({ studioName: "Captora Photography", tagline: "Capturing Moments, Crafting Memories", city: "Lucknow, India" });
+    toast({ title: "Reset to default", description: "All settings restored to default." });
   };
 
   const handleChangePassword = async () => {
@@ -30,85 +50,188 @@ export default function Settings() {
         body: JSON.stringify({ currentPassword: passwords.current, newPassword: passwords.newPass }),
       });
       if (res.ok) { toast({ title: "Password changed successfully." }); setPasswords({ current: "", newPass: "", confirm: "" }); }
-      else { const err = await res.json().catch(() => ({})); toast({ variant: "destructive", title: err.error || "Failed to change password." }); }
+      else { const err = await res.json().catch(() => ({})); toast({ variant: "destructive", title: (err as { error?: string }).error || "Failed to change password." }); }
     } catch { toast({ variant: "destructive", title: "Network error. Please try again." }); }
   };
 
+  const addCategory = () => {
+    const trimmed = newCategory.trim();
+    if (!trimmed) return;
+    if (config.serviceCategories.includes(trimmed)) { toast({ variant: "destructive", title: "Category already exists." }); return; }
+    updateConfig({ serviceCategories: [...config.serviceCategories, trimmed] });
+    setNewCategory("");
+  };
+
+  const removeCategory = (cat: string) => {
+    updateConfig({ serviceCategories: config.serviceCategories.filter(c => c !== cat) });
+  };
+
+  const resetCategories = () => {
+    updateConfig({ serviceCategories: DEFAULT_SERVICE_CATEGORIES });
+    toast({ title: "Service categories reset to default." });
+  };
+
   const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: "branding", label: "Studio Branding", icon: Camera },
+    { id: "branding", label: "Branding", icon: Camera },
+    { id: "themes", label: "Themes", icon: Palette },
+    { id: "services", label: "Services", icon: Tag },
     { id: "security", label: "Security", icon: Shield },
-    { id: "users", label: "Users & Access", icon: Users },
   ];
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-5 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Settings</h1>
         <p className="text-slate-500 text-sm mt-0.5">Manage your studio preferences and account</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit">
-        {TABS.map(t => {
-          const Icon = t.icon;
-          return (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${tab === t.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
-              <Icon className="w-4 h-4" />{t.label}
-            </button>
-          );
-        })}
+      {/* Tabs — scrollable on mobile */}
+      <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit min-w-full sm:min-w-0">
+          {TABS.map(t => {
+            const Icon = t.icon;
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex-1 sm:flex-none justify-center sm:justify-start"
+                style={tab === t.id
+                  ? { background: "#FFFFFF", color: "#0F172A", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
+                  : { color: "#64748B" }}>
+                <Icon className="w-4 h-4" /><span className="hidden sm:inline">{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Branding */}
+      {/* ── Branding ── */}
       {tab === "branding" && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 space-y-6">
           <div>
             <h2 className="text-base font-bold text-slate-900">Studio Identity</h2>
             <p className="text-xs text-slate-400 mt-0.5">Customize how your studio appears across the app.</p>
           </div>
-
-          <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-slate-300 transition-colors cursor-pointer">
-            <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-3" style={{ background: "#FFF1F0" }}>
-              <Camera className="w-7 h-7" style={{ color: "#E0533C" }} />
-            </div>
-            <p className="text-sm font-semibold text-slate-700">Click to upload studio logo</p>
-            <p className="text-xs text-slate-400 mt-1">PNG, JPG · max 2MB</p>
-          </div>
-
           <div className="grid gap-4">
             <div className="space-y-1.5"><Label>Studio Name</Label><Input value={branding.studioName} onChange={e => setBranding(b => ({ ...b, studioName: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label>Tagline</Label><Input value={branding.tagline} onChange={e => setBranding(b => ({ ...b, tagline: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label>Location</Label><Input value={branding.city} onChange={e => setBranding(b => ({ ...b, city: e.target.value }))} /></div>
           </div>
-
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Palette className="w-4 h-4 text-slate-400" />
-              <Label>Accent Color</Label>
-            </div>
-            <div className="flex gap-3 flex-wrap">
-              {[{ name: "Coral", color: "#E0533C" }, { name: "Emerald", color: "#10B981" }, { name: "Violet", color: "#8B5CF6" }, { name: "Rose", color: "#F43F5E" }, { name: "Sky", color: "#0EA5E9" }].map(c => (
-                <button key={c.color} title={c.name}
-                  className={`w-9 h-9 rounded-full border-4 transition-all hover:scale-110 ${c.color === "#E0533C" ? "border-slate-400" : "border-transparent"}`}
-                  style={{ background: c.color }}
-                  onClick={() => toast({ title: `Theme: ${c.name}`, description: "Coral is the active accent color." })}
-                />
-              ))}
-            </div>
+          <div className="flex gap-3">
+            <button onClick={handleSaveBranding}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-semibold" style={{ background: ACCENT }}
+              onMouseEnter={e => (e.currentTarget.style.filter = "brightness(0.88)")} onMouseLeave={e => (e.currentTarget.style.filter = "")}>
+              <Save className="w-4 h-4" />Save Branding
+            </button>
+            <button onClick={handleReset}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-slate-600 text-sm font-semibold border border-slate-200 hover:bg-slate-50 transition-colors">
+              <RotateCcw className="w-4 h-4" />Reset All
+            </button>
           </div>
-
-          <button onClick={handleSaveBranding}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-semibold" style={{ background: "#E0533C" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "#C9432C")} onMouseLeave={e => (e.currentTarget.style.background = "#E0533C")}>
-            <Save className="w-4 h-4" />Save Branding
-          </button>
         </div>
       )}
 
-      {/* Security */}
+      {/* ── Themes / Layout ── */}
+      {tab === "themes" && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 space-y-6">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Layout Themes</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Choose a color theme for your dashboard. Changes apply instantly.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {THEMES.map(t => {
+              const isActive = config.themeId === t.id;
+              return (
+                <button key={t.id} onClick={() => handleSetTheme(t.id)}
+                  className="relative text-left p-4 rounded-xl border-2 transition-all hover:shadow-md"
+                  style={{ borderColor: isActive ? t.accent : "#E2E8F0", background: t.bg }}>
+                  {isActive && (
+                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center" style={{ background: t.accent }}>
+                      <Check className="w-3.5 h-3.5 text-white" />
+                    </div>
+                  )}
+                  {/* Preview mini-UI */}
+                  <div className="flex gap-2 mb-3">
+                    <div className="w-8 rounded-lg flex-shrink-0 h-14" style={{ background: t.sidebar }} />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 rounded-md" style={{ background: t.accent, width: "60%" }} />
+                      <div className="h-2.5 rounded bg-slate-200 w-full" />
+                      <div className="h-2.5 rounded bg-slate-100 w-4/5" />
+                    </div>
+                  </div>
+                  <p className="text-sm font-bold text-slate-900">{t.name}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{t.description}</p>
+                  <div className="flex gap-1.5 mt-2">
+                    <div className="w-5 h-5 rounded-full border-2 border-white shadow-sm" style={{ background: t.accent }} />
+                    <div className="w-5 h-5 rounded-full border-2 border-white shadow-sm" style={{ background: t.sidebar }} />
+                    <div className="w-5 h-5 rounded-full border-2 border-white shadow-sm" style={{ background: t.bg }} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="pt-2 border-t border-slate-100">
+            <button onClick={handleReset}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-slate-600 text-sm font-semibold border border-slate-200 hover:bg-slate-50 transition-colors">
+              <RotateCcw className="w-4 h-4" />Reset to Default Theme
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Services ── */}
+      {tab === "services" && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 space-y-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Service Categories</h2>
+              <p className="text-xs text-slate-400 mt-0.5">These categories appear when adding clients and scheduling shoots.</p>
+            </div>
+            <button onClick={resetCategories}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors flex-shrink-0">
+              <RotateCcw className="w-3.5 h-3.5" />Reset
+            </button>
+          </div>
+
+          {/* Add new category */}
+          <div className="flex gap-2">
+            <Input
+              value={newCategory}
+              onChange={e => setNewCategory(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && addCategory()}
+              placeholder="Add new category (e.g. Corporate Event)"
+              className="flex-1"
+            />
+            <button onClick={addCategory}
+              className="px-4 py-2 rounded-lg text-white text-sm font-semibold flex items-center gap-1.5" style={{ background: ACCENT }}
+              onMouseEnter={e => (e.currentTarget.style.filter = "brightness(0.88)")} onMouseLeave={e => (e.currentTarget.style.filter = "")}>
+              <Plus className="w-4 h-4" />Add
+            </button>
+          </div>
+
+          {/* Category chips */}
+          <div className="flex flex-wrap gap-2">
+            {config.serviceCategories.map(cat => (
+              <div key={cat} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 group">
+                <span className="text-sm text-slate-700 font-medium">{cat}</span>
+                <button onClick={() => removeCategory(cat)}
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            {config.serviceCategories.length === 0 && (
+              <p className="text-sm text-slate-400">No categories yet. Add some above.</p>
+            )}
+          </div>
+
+          <p className="text-xs text-slate-400">{config.serviceCategories.length} categories · Changes save instantly</p>
+        </div>
+      )}
+
+      {/* ── Security ── */}
       {tab === "security" && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 sm:p-6 space-y-5">
           <div>
             <h2 className="text-base font-bold text-slate-900">Change Password</h2>
             <p className="text-xs text-slate-400 mt-0.5">Update your admin login password.</p>
@@ -130,35 +253,23 @@ export default function Settings() {
               </div>
             </div>
             <button onClick={handleChangePassword}
-              className="w-full py-2.5 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2" style={{ background: "#E0533C" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#C9432C")} onMouseLeave={e => (e.currentTarget.style.background = "#E0533C")}>
+              className="w-full py-2.5 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2" style={{ background: ACCENT }}
+              onMouseEnter={e => (e.currentTarget.style.filter = "brightness(0.88)")} onMouseLeave={e => (e.currentTarget.style.filter = "")}>
               <Shield className="w-4 h-4" />Update Password
             </button>
           </div>
-        </div>
-      )}
 
-      {/* Users */}
-      {tab === "users" && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
-          <div>
-            <h2 className="text-base font-bold text-slate-900">Portal Access</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Manage who has access to the CRM.</p>
-          </div>
-          <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: "#E0533C" }}>A</div>
-              <div>
-                <p className="text-sm font-bold text-slate-900">Abhishek</p>
-                <p className="text-xs text-slate-400">Super Admin</p>
+          <div className="pt-4 border-t border-slate-100">
+            <div className="flex items-center justify-between p-4 border border-slate-200 rounded-xl bg-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white" style={{ background: ACCENT }}>A</div>
+                <div>
+                  <p className="text-sm font-bold text-slate-900">Admin</p>
+                  <p className="text-xs text-slate-400">Super Admin · Full Access</p>
+                </div>
               </div>
+              <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">Active</span>
             </div>
-            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">Active</span>
-          </div>
-          <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center">
-            <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-slate-500">Multi-user support coming soon</p>
-            <p className="text-xs text-slate-400 mt-1">Invite team members with role-based access</p>
           </div>
         </div>
       )}

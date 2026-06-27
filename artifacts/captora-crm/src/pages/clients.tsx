@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useStudio } from "@/lib/studio-context";
 import { Plus, Pencil, Trash2, Search, ExternalLink, Phone, ChevronRight } from "lucide-react";
 
 const STATUSES = ["Lead", "Quoted", "Advance Paid", "Confirmed", "Completed", "Cancelled"];
@@ -23,8 +24,6 @@ const STATUS_COLORS: Record<string, string> = {
   Completed: "bg-green-50 text-green-700 border border-green-200",
   Cancelled: "bg-red-50 text-red-600 border border-red-200",
 };
-
-const FUNCTIONS = ["Haldi", "Mehendi", "Sangeet", "Wedding", "Reception", "Engagement", "Pre-Wedding"];
 
 const emptyForm = (): ClientInput => ({
   name: "", phone: "", email: "", city: "", venue: "", weddingDate: "",
@@ -38,6 +37,9 @@ export default function Clients() {
   const updateMut = useUpdateClient();
   const deleteMut = useDeleteClient();
   const { toast } = useToast();
+  const { config, theme } = useStudio();
+  const ACCENT = theme.accent;
+  const categories = config.serviceCategories;
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
@@ -82,8 +84,8 @@ export default function Clients() {
     });
   };
 
-  const toggleFunction = (fn: string) =>
-    setForm(f => ({ ...f, functions: f.functions?.includes(fn) ? f.functions.filter(x => x !== fn) : [...(f.functions || []), fn] }));
+  const toggleCategory = (cat: string) =>
+    setForm(f => ({ ...f, functions: f.functions?.includes(cat) ? f.functions.filter(x => x !== cat) : [...(f.functions || []), cat] }));
 
   const filtered = clients?.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -102,9 +104,9 @@ export default function Clients() {
         <button
           onClick={openAdd}
           className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-lg text-white text-sm font-semibold transition-all"
-          style={{ background: "#E0533C" }}
-          onMouseEnter={e => (e.currentTarget.style.background = "#C9432C")}
-          onMouseLeave={e => (e.currentTarget.style.background = "#E0533C")}
+          style={{ background: ACCENT }}
+          onMouseEnter={e => (e.currentTarget.style.filter = "brightness(0.88)")}
+          onMouseLeave={e => (e.currentTarget.style.filter = "")}
         >
           <Plus className="w-4 h-4" /><span className="hidden sm:inline">Add Client</span><span className="sm:hidden">Add</span>
         </button>
@@ -117,7 +119,10 @@ export default function Clients() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name, phone, city..."
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-[#E0533C] transition-all"
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none transition-all"
+          style={{ "--tw-ring-color": ACCENT } as React.CSSProperties}
+          onFocus={e => (e.currentTarget.style.borderColor = ACCENT)}
+          onBlur={e => (e.currentTarget.style.borderColor = "#E2E8F0")}
         />
       </div>
 
@@ -130,7 +135,7 @@ export default function Clients() {
             {filtered.map(client => (
               <Link key={client.id} href={`/clients/${client.id}`}>
                 <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-3 active:bg-slate-50 transition-colors">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: "#E0533C" }}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: ACCENT }}>
                     {client.name[0]}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -150,6 +155,14 @@ export default function Clients() {
                         <span className="text-red-500 font-medium">₹{(client.totalPending ?? 0).toLocaleString("en-IN")} due</span>
                       )}
                     </div>
+                    {client.functions && client.functions.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {client.functions.slice(0, 3).map(fn => (
+                          <span key={fn} className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500">{fn}</span>
+                        ))}
+                        {client.functions.length > 3 && <span className="text-[10px] text-slate-400">+{client.functions.length - 3}</span>}
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button onClick={e => { e.preventDefault(); openEdit(client); }} className="p-1.5 rounded-lg text-slate-300 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
@@ -171,7 +184,7 @@ export default function Clients() {
                 <tr className="bg-slate-50 border-b border-slate-100">
                   <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Client</th>
                   <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Phone</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400 hidden md:table-cell">Wedding Date</th>
+                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400 hidden md:table-cell">Event Date</th>
                   <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Package</th>
                   <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400 hidden md:table-cell">Pending</th>
                   <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">Status</th>
@@ -184,11 +197,11 @@ export default function Clients() {
                     <td className="px-5 py-4">
                       <Link href={`/clients/${client.id}`}>
                         <div className="flex items-center gap-3 cursor-pointer group">
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: "#E0533C" }}>
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: ACCENT }}>
                             {client.name[0]}
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-800 group-hover:text-[#E0533C] transition-colors">{client.name}</p>
+                            <p className="text-sm font-semibold text-slate-800 group-hover:underline transition-colors">{client.name}</p>
                             <p className="text-xs text-slate-400">{client.city || "—"}</p>
                           </div>
                         </div>
@@ -211,7 +224,7 @@ export default function Clients() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <Link href={`/clients/${client.id}`}>
-                          <button className="p-1.5 rounded-lg text-slate-400 hover:text-[#E0533C] hover:bg-orange-50 transition-colors"><ExternalLink className="w-4 h-4" /></button>
+                          <button className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><ExternalLink className="w-4 h-4" /></button>
                         </Link>
                         <button onClick={() => openEdit(client)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-4 h-4" /></button>
                         <button onClick={() => setDeleteId(client.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
@@ -230,7 +243,7 @@ export default function Clients() {
 
       {/* Add/Edit dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-3">
           <DialogHeader><DialogTitle>{editing ? "Edit Client" : "Add New Client"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -239,8 +252,8 @@ export default function Clients() {
               <div className="space-y-1.5"><Label>WhatsApp</Label><Input value={form.whatsapp || ""} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} placeholder="WhatsApp number" /></div>
               <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={form.email || ""} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" /></div>
               <div className="space-y-1.5"><Label>City</Label><Input value={form.city || ""} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Lucknow" /></div>
-              <div className="space-y-1.5"><Label>Venue</Label><Input value={form.venue || ""} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} placeholder="Venue name" /></div>
-              <div className="space-y-1.5"><Label>Wedding Date</Label><Input type="date" value={form.weddingDate || ""} onChange={e => setForm(f => ({ ...f, weddingDate: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Location / Venue</Label><Input value={form.venue || ""} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} placeholder="Studio / outdoor / venue name" /></div>
+              <div className="space-y-1.5"><Label>Event / Shoot Date</Label><Input type="date" value={form.weddingDate || ""} onChange={e => setForm(f => ({ ...f, weddingDate: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label>Package Amount (₹)</Label><Input type="number" value={form.packageAmount || ""} onChange={e => setForm(f => ({ ...f, packageAmount: Number(e.target.value) }))} placeholder="150000" /></div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Status</Label>
@@ -250,20 +263,24 @@ export default function Clients() {
                 </Select>
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label>Functions</Label>
-                <div className="flex flex-wrap gap-2">
-                  {FUNCTIONS.map(fn => (
-                    <button key={fn} type="button" onClick={() => toggleFunction(fn)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${form.functions?.includes(fn) ? "border-[#E0533C] bg-orange-50 text-[#E0533C]" : "border-slate-200 text-slate-500 hover:border-slate-300"}`}>
-                      {fn}
+                <Label>Service Categories</Label>
+                <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                  {categories.map(cat => (
+                    <button key={cat} type="button" onClick={() => toggleCategory(cat)}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all"
+                      style={form.functions?.includes(cat)
+                        ? { borderColor: ACCENT, background: `${ACCENT}18`, color: ACCENT }
+                        : { borderColor: "#E2E8F0", color: "#64748B" }}>
+                      {cat}
                     </button>
                   ))}
                 </div>
+                <p className="text-xs text-slate-400">Manage categories in Settings → Services</p>
               </div>
             </div>
             <div className="flex gap-3 pt-2">
               <button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}
-                className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: "#E0533C" }}>
+                className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: ACCENT }}>
                 {editing ? "Save Changes" : "Add Client"}
               </button>
               <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
@@ -273,7 +290,7 @@ export default function Clients() {
       </Dialog>
 
       <Dialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
-        <DialogContent className="max-w-sm mx-4">
+        <DialogContent className="max-w-sm mx-3">
           <DialogHeader><DialogTitle>Delete Client?</DialogTitle></DialogHeader>
           <p className="text-slate-500 text-sm">This will permanently delete the client and all associated data.</p>
           <div className="flex gap-3 pt-2">
