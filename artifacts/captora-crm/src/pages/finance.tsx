@@ -4,7 +4,7 @@ import {
   useGetMonthlyPnL, useGetPnLChart,
   useListPayments, useCreatePayment, useDeletePayment, useGetPaymentsSummary,
   getListPaymentsQueryKey, getGetPaymentsSummaryQueryKey,
-  useListClients,
+  useListClients, useCreateClient, getListClientsQueryKey,
   useListExpenses, useCreateExpense, useDeleteExpense, useGetExpenseSummary,
   getListExpensesQueryKey, getGetExpenseSummaryQueryKey,
   useListStaff, useCreateStaffMember, useUpdateStaffMember, useDeleteStaffMember,
@@ -17,6 +17,7 @@ import type {
   Expense, ExpenseInput,
   StaffMember, StaffInput,
   Freelancer, FreelancerInput,
+  ClientInput,
 } from "@workspace/api-client-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -168,6 +169,12 @@ const emptyPayment = (): PaymentInput => ({
   paymentDate: NOW.toISOString().split("T")[0], notes: "",
 });
 
+const emptyClient = (): ClientInput => ({
+  name: "", phone: "", status: "Lead",
+});
+
+const QUICK_AMOUNTS = [10000, 20000, 30000, 50000, 75000, 100000];
+
 function PaymentsTab() {
   const qc = useQueryClient();
   const { data: payments, isLoading } = useListPayments();
@@ -175,11 +182,14 @@ function PaymentsTab() {
   const { data: summary } = useGetPaymentsSummary();
   const createMut = useCreatePayment();
   const deleteMut = useDeletePayment();
+  const createClientMut = useCreateClient();
   const { toast } = useToast();
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<PaymentInput>(emptyPayment());
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [addClientOpen, setAddClientOpen] = useState(false);
+  const [clientForm, setClientForm] = useState<ClientInput>(emptyClient());
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: getListPaymentsQueryKey() });
@@ -193,6 +203,22 @@ function PaymentsTab() {
     createMut.mutate({ data: { ...form, amount: Number(form.amount) } }, {
       onSuccess: () => { invalidate(); setOpen(false); setForm(emptyPayment()); toast({ title: "Payment recorded ✓" }); },
       onError: () => toast({ variant: "destructive", title: "Failed to record payment" }),
+    });
+  };
+
+  const handleAddClient = () => {
+    if (!clientForm.name || !clientForm.phone) {
+      toast({ variant: "destructive", title: "Name and phone are required." }); return;
+    }
+    createClientMut.mutate({ data: clientForm }, {
+      onSuccess: (newClient) => {
+        qc.invalidateQueries({ queryKey: getListClientsQueryKey() });
+        setForm(f => ({ ...f, clientId: newClient.id }));
+        setAddClientOpen(false);
+        setClientForm(emptyClient());
+        toast({ title: `${newClient.name} added ✓` });
+      },
+      onError: () => toast({ variant: "destructive", title: "Failed to add client" }),
     });
   };
 
@@ -273,14 +299,31 @@ function PaymentsTab() {
           <DialogHeader><DialogTitle>Record Payment</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label>Client *</Label>
+              <div className="flex items-center justify-between">
+                <Label>Client *</Label>
+                <button onClick={() => setAddClientOpen(true)}
+                  className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border border-dashed border-slate-300 text-slate-500 hover:border-[#E0533C] hover:text-[#E0533C] transition-colors">
+                  <Plus className="w-3 h-3" />New Client
+                </button>
+              </div>
               <Select value={String(form.clientId || "")} onValueChange={v => setForm(f => ({ ...f, clientId: Number(v) }))}>
                 <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
                 <SelectContent>{clients?.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            <div className="space-y-1.5">
+              <Label>Amount (₹) *</Label>
+              <Input type="number" value={form.amount || ""} onChange={e => setForm(f => ({ ...f, amount: Number(e.target.value) }))} placeholder="50000" />
+              <div className="flex gap-1.5 flex-wrap mt-1">
+                {QUICK_AMOUNTS.map(a => (
+                  <button key={a} onClick={() => setForm(f => ({ ...f, amount: a }))}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${form.amount === a ? "bg-[#E0533C] text-white border-[#E0533C]" : "bg-white text-slate-600 border-slate-200 hover:border-[#E0533C] hover:text-[#E0533C]"}`}>
+                    {a >= 100000 ? `₹${a / 100000}L` : `₹${a / 1000}k`}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5"><Label>Amount (₹) *</Label><Input type="number" value={form.amount || ""} onChange={e => setForm(f => ({ ...f, amount: Number(e.target.value) }))} placeholder="50000" /></div>
               <div className="space-y-1.5"><Label>Date</Label><Input type="date" value={form.paymentDate || ""} onChange={e => setForm(f => ({ ...f, paymentDate: e.target.value }))} /></div>
               <div className="space-y-1.5">
                 <Label>Mode</Label>
@@ -301,6 +344,22 @@ function PaymentsTab() {
             <div className="flex gap-3 pt-2">
               <button onClick={handleSave} disabled={createMut.isPending} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: CORAL }}>Record Payment</button>
               <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick-add client dialog */}
+      <Dialog open={addClientOpen} onOpenChange={setAddClientOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Add New Client</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5"><Label>Name *</Label><Input value={clientForm.name} onChange={e => setClientForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Rahul Sharma" /></div>
+            <div className="space-y-1.5"><Label>Phone *</Label><Input value={clientForm.phone} onChange={e => setClientForm(f => ({ ...f, phone: e.target.value }))} placeholder="9876543210" /></div>
+            <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={clientForm.email || ""} onChange={e => setClientForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" /></div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={handleAddClient} disabled={createClientMut.isPending} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: CORAL }}>Add Client</button>
+              <Button variant="outline" onClick={() => setAddClientOpen(false)} className="flex-1">Cancel</Button>
             </div>
           </div>
         </DialogContent>

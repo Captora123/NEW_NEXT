@@ -56,6 +56,8 @@ export interface Client {
   packageAmount?: number | null;
   totalPaid?: number;
   totalPending?: number;
+  albumCost?: number;
+  miscExpenses?: number;
   createdAt: string;
 }
 
@@ -155,6 +157,31 @@ export interface ClientStatusUpdate {
 
 export interface ClientNoteInput {
   content: string;
+}
+
+export interface ClientFreelancerAssignment {
+  id: number;
+  clientId: number;
+  freelancerId: number;
+  freelancerName?: string;
+  freelancerRole?: string;
+  functionName: string;
+  rateForShoot: number;
+  /** @nullable */
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface ClientFreelancerInput {
+  freelancerId: number;
+  functionName: string;
+  rateForShoot: number;
+  notes?: string;
+}
+
+export interface ClientProjectExpensesUpdate {
+  albumCost?: number;
+  miscExpenses?: number;
 }
 
 export interface ShootTeamMember {

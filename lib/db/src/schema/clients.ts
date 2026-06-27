@@ -14,6 +14,8 @@ export const clientsTable = pgTable("clients", {
   functions: text("functions").array().default([]),
   status: text("status").notNull().default("Lead"),
   packageAmount: numeric("package_amount", { precision: 12, scale: 2 }),
+  albumCost: numeric("album_cost", { precision: 12, scale: 2 }).default("0"),
+  miscExpenses: numeric("misc_expenses", { precision: 12, scale: 2 }).default("0"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

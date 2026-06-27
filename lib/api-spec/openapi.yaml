@@ -283,6 +283,97 @@ paths:
               schema:
                 $ref: "#/components/schemas/ClientNote"
 
+  # CLIENT FREELANCER ASSIGNMENTS
+  /clients/{id}/freelancers:
+    get:
+      operationId: listClientFreelancers
+      tags: [clients]
+      summary: List freelancer assignments for a client
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClientFreelancerAssignment"
+    post:
+      operationId: addClientFreelancer
+      tags: [clients]
+      summary: Assign a freelancer to a client function
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientFreelancerInput"
+      responses:
+        "201":
+          description: Created assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClientFreelancerAssignment"
+
+  /clients/{id}/freelancers/{assignmentId}:
+    delete:
+      operationId: removeClientFreelancer
+      tags: [clients]
+      summary: Remove a freelancer assignment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: assignmentId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # CLIENT EXPENSES UPDATE
+  /clients/{id}/project-expenses:
+    patch:
+      operationId: updateClientProjectExpenses
+      tags: [clients]
+      summary: Update album cost and misc expenses for a client project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClientProjectExpensesUpdate"
+      responses:
+        "200":
+          description: Updated client
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Client"
+
   # SHOOTS
   /shoots:
     get:
@@ -1199,6 +1290,10 @@ components:
           type: number
         totalPending:
           type: number
+        albumCost:
+          type: number
+        miscExpenses:
+          type: number
         createdAt:
           type: string
 
@@ -1299,6 +1394,50 @@ components:
       properties:
         content:
           type: string
+
+    ClientFreelancerAssignment:
+      type: object
+      required: [id, clientId, freelancerId, functionName, rateForShoot, createdAt]
+      properties:
+        id:
+          type: integer
+        clientId:
+          type: integer
+        freelancerId:
+          type: integer
+        freelancerName:
+          type: string
+        freelancerRole:
+          type: string
+        functionName:
+          type: string
+        rateForShoot:
+          type: number
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    ClientFreelancerInput:
+      type: object
+      required: [freelancerId, functionName, rateForShoot]
+      properties:
+        freelancerId:
+          type: integer
+        functionName:
+          type: string
+        rateForShoot:
+          type: number
+        notes:
+          type: string
+
+    ClientProjectExpensesUpdate:
+      type: object
+      properties:
+        albumCost:
+          type: number
+        miscExpenses:
+          type: number
 
     Shoot:
       type: object

@@ -1,17 +1,15 @@
 import { Router, type IRouter } from "express";
-import { eq, ilike, and, sql } from "drizzle-orm";
-import { db, clientsTable, clientNotesTable, paymentsTable, shootsTable } from "@workspace/db";
+import { eq, ilike, and } from "drizzle-orm";
+import { z } from "zod";
+import {
+  db, clientsTable, clientNotesTable, paymentsTable, shootsTable,
+  clientFreelancerAssignmentsTable, freelancersTable,
+} from "@workspace/db";
 import {
   ListClientsQueryParams,
   CreateClientBody,
-  GetClientParams,
-  UpdateClientParams,
   UpdateClientBody,
-  DeleteClientParams,
-  UpdateClientStatusParams,
   UpdateClientStatusBody,
-  ListClientNotesParams,
-  AddClientNoteParams,
   AddClientNoteBody,
 } from "@workspace/api-zod";
 
@@ -36,6 +34,8 @@ async function getClientWithTotals(id: number) {
     ...client,
     functions: client.functions ?? [],
     packageAmount: client.packageAmount ? parseFloat(client.packageAmount) : null,
+    albumCost: client.albumCost ? parseFloat(client.albumCost) : 0,
+    miscExpenses: client.miscExpenses ? parseFloat(client.miscExpenses) : 0,
     totalPaid,
     totalPending,
     createdAt: client.createdAt.toISOString(),
@@ -70,6 +70,8 @@ router.get("/clients", async (req, res): Promise<void> => {
       ...c,
       functions: c.functions ?? [],
       packageAmount: c.packageAmount ? parseFloat(c.packageAmount) : null,
+      albumCost: c.albumCost ? parseFloat(c.albumCost) : 0,
+      miscExpenses: c.miscExpenses ? parseFloat(c.miscExpenses) : 0,
       totalPaid,
       totalPending: Math.max(0, packageAmount - totalPaid),
       createdAt: c.createdAt.toISOString(),
@@ -96,6 +98,8 @@ router.post("/clients", async (req, res): Promise<void> => {
     ...client,
     functions: client.functions ?? [],
     packageAmount: client.packageAmount ? parseFloat(client.packageAmount) : null,
+    albumCost: 0,
+    miscExpenses: 0,
     totalPaid: 0,
     totalPending: packageAmount ?? 0,
     createdAt: client.createdAt.toISOString(),
@@ -200,6 +204,114 @@ router.post("/clients/:id/notes", async (req, res): Promise<void> => {
     .returning();
 
   res.status(201).json({ ...note, createdAt: note.createdAt.toISOString() });
+});
+
+// ── CLIENT FREELANCER ASSIGNMENTS ──────────────────────────────────────────
+
+const ClientFreelancerInputSchema = z.object({
+  freelancerId: z.number().int().positive(),
+  functionName: z.string().min(1),
+  rateForShoot: z.number().min(0),
+  notes: z.string().optional(),
+});
+
+const ProjectExpensesSchema = z.object({
+  albumCost: z.number().min(0).optional(),
+  miscExpenses: z.number().min(0).optional(),
+});
+
+router.get("/clients/:id/freelancers", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const assignments = await db
+    .select({
+      id: clientFreelancerAssignmentsTable.id,
+      clientId: clientFreelancerAssignmentsTable.clientId,
+      freelancerId: clientFreelancerAssignmentsTable.freelancerId,
+      functionName: clientFreelancerAssignmentsTable.functionName,
+      rateForShoot: clientFreelancerAssignmentsTable.rateForShoot,
+      notes: clientFreelancerAssignmentsTable.notes,
+      createdAt: clientFreelancerAssignmentsTable.createdAt,
+      freelancerName: freelancersTable.name,
+      freelancerRole: freelancersTable.role,
+    })
+    .from(clientFreelancerAssignmentsTable)
+    .leftJoin(freelancersTable, eq(clientFreelancerAssignmentsTable.freelancerId, freelancersTable.id))
+    .where(eq(clientFreelancerAssignmentsTable.clientId, id))
+    .orderBy(clientFreelancerAssignmentsTable.functionName);
+
+  res.json(assignments.map(a => ({
+    ...a,
+    rateForShoot: parseFloat(a.rateForShoot),
+    createdAt: a.createdAt.toISOString(),
+  })));
+});
+
+router.post("/clients/:id/freelancers", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const parsed = ClientFreelancerInputSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: String(parsed.error) }); return; }
+
+  const [assignment] = await db
+    .insert(clientFreelancerAssignmentsTable)
+    .values({
+      clientId: id,
+      freelancerId: parsed.data.freelancerId,
+      functionName: parsed.data.functionName,
+      rateForShoot: parsed.data.rateForShoot.toString(),
+      notes: parsed.data.notes ?? null,
+    })
+    .returning();
+
+  // Fetch freelancer name/role
+  const [freelancer] = await db.select().from(freelancersTable).where(eq(freelancersTable.id, assignment.freelancerId));
+
+  res.status(201).json({
+    ...assignment,
+    rateForShoot: parseFloat(assignment.rateForShoot),
+    freelancerName: freelancer?.name ?? null,
+    freelancerRole: freelancer?.role ?? null,
+    createdAt: assignment.createdAt.toISOString(),
+  });
+});
+
+router.delete("/clients/:id/freelancers/:assignmentId", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  const assignmentId = parseId(req.params.assignmentId);
+  if (!id || !assignmentId) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  await db
+    .delete(clientFreelancerAssignmentsTable)
+    .where(
+      and(
+        eq(clientFreelancerAssignmentsTable.id, assignmentId),
+        eq(clientFreelancerAssignmentsTable.clientId, id)
+      )
+    );
+
+  res.sendStatus(204);
+});
+
+router.patch("/clients/:id/project-expenses", async (req, res): Promise<void> => {
+  const id = parseId(req.params.id);
+  if (!id) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const parsed = ProjectExpensesSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: String(parsed.error) }); return; }
+
+  const updates: Record<string, unknown> = {};
+  if (parsed.data.albumCost !== undefined) updates.albumCost = parsed.data.albumCost.toString();
+  if (parsed.data.miscExpenses !== undefined) updates.miscExpenses = parsed.data.miscExpenses.toString();
+
+  await db.update(clientsTable).set(updates).where(eq(clientsTable.id, id));
+
+  const client = await getClientWithTotals(id);
+  if (!client) { res.status(404).json({ error: "Not found" }); return; }
+
+  res.json(client);
 });
 
 export default router;

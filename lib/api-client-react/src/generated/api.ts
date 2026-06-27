@@ -24,9 +24,12 @@ import type {
   AuthToken,
   Client,
   ClientDetail,
+  ClientFreelancerAssignment,
+  ClientFreelancerInput,
   ClientInput,
   ClientNote,
   ClientNoteInput,
+  ClientProjectExpensesUpdate,
   ClientStatusUpdate,
   ClientUpdate,
   ContentIdea,
@@ -1148,6 +1151,297 @@ export const useAddClientNote = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getAddClientNoteMutationOptions(options));
+    }
+
+export const getListClientFreelancersUrl = (id: number,) => {
+
+
+
+
+  return `/api/clients/${id}/freelancers`
+}
+
+/**
+ * @summary List freelancer assignments for a client
+ */
+export const listClientFreelancers = async (id: number, options?: RequestInit): Promise<ClientFreelancerAssignment[]> => {
+
+  return customFetch<ClientFreelancerAssignment[]>(getListClientFreelancersUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListClientFreelancersQueryKey = (id: number,) => {
+    return [
+    `/api/clients/${id}/freelancers`
+    ] as const;
+    }
+
+
+export const getListClientFreelancersQueryOptions = <TData = Awaited<ReturnType<typeof listClientFreelancers>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClientFreelancers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListClientFreelancersQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listClientFreelancers>>> = ({ signal }) => listClientFreelancers(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listClientFreelancers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListClientFreelancersQueryResult = NonNullable<Awaited<ReturnType<typeof listClientFreelancers>>>
+export type ListClientFreelancersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List freelancer assignments for a client
+ */
+
+export function useListClientFreelancers<TData = Awaited<ReturnType<typeof listClientFreelancers>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClientFreelancers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListClientFreelancersQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAddClientFreelancerUrl = (id: number,) => {
+
+
+
+
+  return `/api/clients/${id}/freelancers`
+}
+
+/**
+ * @summary Assign a freelancer to a client function
+ */
+export const addClientFreelancer = async (id: number,
+    clientFreelancerInput: ClientFreelancerInput, options?: RequestInit): Promise<ClientFreelancerAssignment> => {
+
+  return customFetch<ClientFreelancerAssignment>(getAddClientFreelancerUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(clientFreelancerInput)
+  }
+);}
+
+
+
+
+export const getAddClientFreelancerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addClientFreelancer>>, TError,{id: number;data: BodyType<ClientFreelancerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addClientFreelancer>>, TError,{id: number;data: BodyType<ClientFreelancerInput>}, TContext> => {
+
+const mutationKey = ['addClientFreelancer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addClientFreelancer>>, {id: number;data: BodyType<ClientFreelancerInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addClientFreelancer(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddClientFreelancerMutationResult = NonNullable<Awaited<ReturnType<typeof addClientFreelancer>>>
+    export type AddClientFreelancerMutationBody = BodyType<ClientFreelancerInput>
+    export type AddClientFreelancerMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Assign a freelancer to a client function
+ */
+export const useAddClientFreelancer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addClientFreelancer>>, TError,{id: number;data: BodyType<ClientFreelancerInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addClientFreelancer>>,
+        TError,
+        {id: number;data: BodyType<ClientFreelancerInput>},
+        TContext
+      > => {
+      return useMutation(getAddClientFreelancerMutationOptions(options));
+    }
+
+export const getRemoveClientFreelancerUrl = (id: number,
+    assignmentId: number,) => {
+
+
+
+
+  return `/api/clients/${id}/freelancers/${assignmentId}`
+}
+
+/**
+ * @summary Remove a freelancer assignment
+ */
+export const removeClientFreelancer = async (id: number,
+    assignmentId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getRemoveClientFreelancerUrl(id,assignmentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRemoveClientFreelancerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeClientFreelancer>>, TError,{id: number;assignmentId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeClientFreelancer>>, TError,{id: number;assignmentId: number}, TContext> => {
+
+const mutationKey = ['removeClientFreelancer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeClientFreelancer>>, {id: number;assignmentId: number}> = (props) => {
+          const {id,assignmentId} = props ?? {};
+
+          return  removeClientFreelancer(id,assignmentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveClientFreelancerMutationResult = NonNullable<Awaited<ReturnType<typeof removeClientFreelancer>>>
+
+    export type RemoveClientFreelancerMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove a freelancer assignment
+ */
+export const useRemoveClientFreelancer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeClientFreelancer>>, TError,{id: number;assignmentId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeClientFreelancer>>,
+        TError,
+        {id: number;assignmentId: number},
+        TContext
+      > => {
+      return useMutation(getRemoveClientFreelancerMutationOptions(options));
+    }
+
+export const getUpdateClientProjectExpensesUrl = (id: number,) => {
+
+
+
+
+  return `/api/clients/${id}/project-expenses`
+}
+
+/**
+ * @summary Update album cost and misc expenses for a client project
+ */
+export const updateClientProjectExpenses = async (id: number,
+    clientProjectExpensesUpdate: ClientProjectExpensesUpdate, options?: RequestInit): Promise<Client> => {
+
+  return customFetch<Client>(getUpdateClientProjectExpensesUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(clientProjectExpensesUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateClientProjectExpensesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateClientProjectExpenses>>, TError,{id: number;data: BodyType<ClientProjectExpensesUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateClientProjectExpenses>>, TError,{id: number;data: BodyType<ClientProjectExpensesUpdate>}, TContext> => {
+
+const mutationKey = ['updateClientProjectExpenses'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateClientProjectExpenses>>, {id: number;data: BodyType<ClientProjectExpensesUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateClientProjectExpenses(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateClientProjectExpensesMutationResult = NonNullable<Awaited<ReturnType<typeof updateClientProjectExpenses>>>
+    export type UpdateClientProjectExpensesMutationBody = BodyType<ClientProjectExpensesUpdate>
+    export type UpdateClientProjectExpensesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update album cost and misc expenses for a client project
+ */
+export const useUpdateClientProjectExpenses = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateClientProjectExpenses>>, TError,{id: number;data: BodyType<ClientProjectExpensesUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateClientProjectExpenses>>,
+        TError,
+        {id: number;data: BodyType<ClientProjectExpensesUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateClientProjectExpensesMutationOptions(options));
     }
 
 export const getListShootsUrl = (params?: ListShootsParams,) => {

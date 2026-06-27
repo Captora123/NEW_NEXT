@@ -1,0 +1,27 @@
+Please implement the following business logic updates, calculation structures, and UI elements into our app. Ensure everything matches our clean slate-and-coral theme.
+
+1. FINANCE PAGE: "RECORD PAYMENT" ENHANCEMENTS
+- Next to the Client dropdown menu, add a prominent coral "+ Add Client" button. Clicking this must open a popup modal to instantly register a new client profile without leaving the screen.
+- In the Payment Amount field, convert the manual input or append a Quick-Select Dropdown Menu containing fixed standard amount intervals: ₹10,000, ₹20,000, ₹30,000, ₹40,000, and ₹50,000.
+
+2. FIXED STAFF SALARY AUTOMATION (RECURRING MONTHLY EXPENSE)
+- In the Team Costs system, differentiate between "Fixed Staff" and "Freelancers".
+- For any registered Fixed Staff, their monthly salary must automatically reflect as a recurring monthly operational expense on the first of every month in the Profit & Loss statement.
+- If a staff member is deleted/removed from the settings ("fired"), instantly halt their recurring monthly salary calculations for all subsequent months moving forward.
+
+3. ROSTER FREELANCERS BY CLIENT & SUB-FUNCTION
+- Allow freelancers to be assigned to a specific client and broken down by their exact sub-functions. 
+- Example Scenario to build for: "Client: Harleen Wedding Shoot". Total of 10 freelancers across multiple days/events: e.g., 2 assigned to Haldi, 3 assigned to Mehendi, and the remaining assigned to the main Wedding function. 
+- The day-rates or event-rates for these 10 freelancers must dynamically aggregate under that specific client's project dashboard.
+
+4. CLIENT-SPECIFIC P&L BREAKDOWN (EXPENSE TRACKING)
+- On the Project Details page for a client (e.g., Harleen), build a dynamic financial card that calculates the net profit exactly like this:
+  * Total Client Revenue: ₹1,00,000
+  * Freelancer Expenditure: ₹50,000 (auto-summed from the 10 assigned freelancers across sub-functions)
+  * Album Cost: ₹5,000 (custom input field)
+  * Miscellaneous/Other Expenses: ₹5,000 (custom input field)
+  * FORMULA COMPUTATION: Total Project Expense = Freelancer Exp + Album Cost + Misc Expense (Result: ₹60,000)
+  * FORMULA COMPUTATION: Total Project Net Profit = Total Revenue - Total Project Expense (Result: ₹40,000)
+- Display these metrics using a clean, easy-to-read summary breakdown so studio owners know the exact margin of each individual shoot.
+
+Please write the frontend components and state management logic to link these operations seamlessly together in Replit. Do not break existing page routing.

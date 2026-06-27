@@ -94,6 +94,8 @@ export const GetOverduePaymentClientsResponseItem = zod.object({
   "packageAmount": zod.number().nullish(),
   "totalPaid": zod.number().optional(),
   "totalPending": zod.number().optional(),
+  "albumCost": zod.number().optional(),
+  "miscExpenses": zod.number().optional(),
   "createdAt": zod.string()
 })
 export const GetOverduePaymentClientsResponse = zod.array(GetOverduePaymentClientsResponseItem)
@@ -122,6 +124,8 @@ export const ListClientsResponseItem = zod.object({
   "packageAmount": zod.number().nullish(),
   "totalPaid": zod.number().optional(),
   "totalPending": zod.number().optional(),
+  "albumCost": zod.number().optional(),
+  "miscExpenses": zod.number().optional(),
   "createdAt": zod.string()
 })
 export const ListClientsResponse = zod.array(ListClientsResponseItem)
@@ -157,6 +161,8 @@ export const CreateClientResponse = zod.object({
   "packageAmount": zod.number().nullish(),
   "totalPaid": zod.number().optional(),
   "totalPending": zod.number().optional(),
+  "albumCost": zod.number().optional(),
+  "miscExpenses": zod.number().optional(),
   "createdAt": zod.string()
 })
 
@@ -182,6 +188,8 @@ export const GetClientResponse = zod.object({
   "packageAmount": zod.number().nullish(),
   "totalPaid": zod.number().optional(),
   "totalPending": zod.number().optional(),
+  "albumCost": zod.number().optional(),
+  "miscExpenses": zod.number().optional(),
   "createdAt": zod.string()
 }).and(zod.object({
   "notes": zod.array(zod.object({
@@ -266,6 +274,8 @@ export const UpdateClientResponse = zod.object({
   "packageAmount": zod.number().nullish(),
   "totalPaid": zod.number().optional(),
   "totalPending": zod.number().optional(),
+  "albumCost": zod.number().optional(),
+  "miscExpenses": zod.number().optional(),
   "createdAt": zod.string()
 })
 
@@ -305,6 +315,8 @@ export const UpdateClientStatusResponse = zod.object({
   "packageAmount": zod.number().nullish(),
   "totalPaid": zod.number().optional(),
   "totalPending": zod.number().optional(),
+  "albumCost": zod.number().optional(),
+  "miscExpenses": zod.number().optional(),
   "createdAt": zod.string()
 })
 
@@ -340,6 +352,97 @@ export const AddClientNoteResponse = zod.object({
   "id": zod.number(),
   "clientId": zod.number(),
   "content": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary List freelancer assignments for a client
+ */
+export const ListClientFreelancersParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListClientFreelancersResponseItem = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "freelancerId": zod.number(),
+  "freelancerName": zod.string().optional(),
+  "freelancerRole": zod.string().optional(),
+  "functionName": zod.string(),
+  "rateForShoot": zod.number(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+export const ListClientFreelancersResponse = zod.array(ListClientFreelancersResponseItem)
+
+
+/**
+ * @summary Assign a freelancer to a client function
+ */
+export const AddClientFreelancerParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const AddClientFreelancerBody = zod.object({
+  "freelancerId": zod.number(),
+  "functionName": zod.string(),
+  "rateForShoot": zod.number(),
+  "notes": zod.string().optional()
+})
+
+export const AddClientFreelancerResponse = zod.object({
+  "id": zod.number(),
+  "clientId": zod.number(),
+  "freelancerId": zod.number(),
+  "freelancerName": zod.string().optional(),
+  "freelancerRole": zod.string().optional(),
+  "functionName": zod.string(),
+  "rateForShoot": zod.number(),
+  "notes": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Remove a freelancer assignment
+ */
+export const RemoveClientFreelancerParams = zod.object({
+  "id": zod.coerce.number(),
+  "assignmentId": zod.coerce.number()
+})
+
+export const RemoveClientFreelancerResponse = zod.void()
+
+
+/**
+ * @summary Update album cost and misc expenses for a client project
+ */
+export const UpdateClientProjectExpensesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateClientProjectExpensesBody = zod.object({
+  "albumCost": zod.number().optional(),
+  "miscExpenses": zod.number().optional()
+})
+
+export const UpdateClientProjectExpensesResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "phone": zod.string(),
+  "whatsapp": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "weddingDate": zod.string().nullish(),
+  "venue": zod.string().nullish(),
+  "city": zod.string().nullish(),
+  "functions": zod.array(zod.string()).optional(),
+  "status": zod.string(),
+  "packageAmount": zod.number().nullish(),
+  "totalPaid": zod.number().optional(),
+  "totalPending": zod.number().optional(),
+  "albumCost": zod.number().optional(),
+  "miscExpenses": zod.number().optional(),
   "createdAt": zod.string()
 })
 

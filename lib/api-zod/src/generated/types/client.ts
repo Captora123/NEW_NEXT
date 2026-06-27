@@ -26,5 +26,7 @@ export interface Client {
   packageAmount?: number | null;
   totalPaid?: number;
   totalPending?: number;
+  albumCost?: number;
+  miscExpenses?: number;
   createdAt: string;
 }
