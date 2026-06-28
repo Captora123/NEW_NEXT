@@ -9,7 +9,7 @@ import {
   useListPayments,
 } from "@workspace/api-client-react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
 import {
   Calendar, ChevronDown, IndianRupee, TrendingUp, AlertCircle,
@@ -35,20 +35,32 @@ function xAxisLabel(month: number) {
   return `${m} ${yr}`;
 }
 
+const GOLD = "#C5A059";
+
 const CustomTooltip = ({
   active, payload, label,
 }: {
   active?: boolean;
-  payload?: { value: number; name: string }[];
+  payload?: { value: number; name: string; fill?: string }[];
   label?: number;
 }) => {
   if (active && payload?.length) {
+    const profit = (payload.find(p => p.name === "Revenue")?.value ?? 0) - (payload.find(p => p.name === "Expenses")?.value ?? 0);
     return (
-      <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-lg text-sm">
-        <p className="text-slate-500 text-xs mb-1">{label !== undefined ? xAxisLabel(label) : ""}</p>
+      <div className="bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-lg text-sm min-w-[140px]">
+        <p className="text-slate-500 text-xs mb-1.5 font-semibold">{label !== undefined ? xAxisLabel(label) : ""}</p>
         {payload.map(p => (
-          <p key={p.name} className="font-bold text-slate-800">{fmtFull(p.value)}</p>
+          <div key={p.name} className="flex items-center justify-between gap-4">
+            <span className="text-xs text-slate-500">{p.name}</span>
+            <span className="text-xs font-bold text-slate-800">{fmtFull(p.value)}</span>
+          </div>
         ))}
+        {payload.length > 1 && (
+          <div className="flex items-center justify-between gap-4 mt-1 pt-1 border-t border-slate-100">
+            <span className="text-xs text-slate-500">Net</span>
+            <span className={`text-xs font-bold ${profit >= 0 ? "text-green-600" : "text-red-500"}`}>{profit >= 0 ? "+" : ""}{fmtFull(profit)}</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -73,7 +85,8 @@ export default function Dashboard() {
   const totalPending = (overdueClients ?? []).reduce((s, c) => s + (c.totalPending ?? 0), 0);
   const totalPackage = totalReceived + totalPending;
   const pct = totalPackage > 0 ? Math.round((totalReceived / totalPackage) * 100) : 0;
-  const barData = chartData?.map(r => ({ month: r.month, Revenue: r.revenue })) ?? [];
+  const barData = chartData?.map(r => ({ month: r.month, Revenue: r.revenue, Expenses: r.expenses, Profit: r.profit })) ?? [];
+  const lastPnL = barData.length > 0 ? barData[barData.length - 1] : null;
 
   const overdue = overdueClients ?? [];
   const visibleOverdue = showAllOverdue ? overdue : overdue.slice(0, 3);
@@ -290,23 +303,62 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* ── Desktop: Bar chart + Team wages ── */}
+      {/* ── P&L + Team wages ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Bar chart — hidden on mobile */}
-        <div className="hidden sm:block lg:col-span-3 bg-white rounded-xl border border-slate-200 p-5">
-          <h2 className="text-sm font-semibold text-slate-800 mb-4">Payments Received (Last 6 Months)</h2>
+        {/* P&L chart — full width on mobile, 3/5 on desktop */}
+        <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-800">P&amp;L — Last 6 Months</h2>
+              {lastPnL && (
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {xAxisLabel(lastPnL.month)}:&nbsp;
+                  <span className={lastPnL.Profit >= 0 ? "text-green-600 font-semibold" : "text-red-500 font-semibold"}>
+                    {lastPnL.Profit >= 0 ? "+" : ""}{fmt(lastPnL.Profit)} net
+                  </span>
+                </p>
+              )}
+            </div>
+            <Link href="/pnl">
+              <button className="text-xs font-semibold hover:underline flex items-center gap-1" style={{ color: CORAL }}>
+                Full P&amp;L <ArrowRight className="w-3 h-3" />
+              </button>
+            </Link>
+          </div>
           {barData.length === 0 ? (
-            <div className="h-48 flex items-center justify-center text-slate-300 text-sm">No payment data yet</div>
+            <div className="h-36 flex items-center justify-center text-slate-300 text-sm">No data yet</div>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={barData} barSize={28} margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
-                <XAxis dataKey="month" tickFormatter={xAxisLabel} tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} width={44} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: "#F8FAFC" }} />
-                <Bar dataKey="Revenue" fill={CORAL} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={barData} barSize={14} barGap={2} margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+                  <XAxis dataKey="month" tickFormatter={xAxisLabel} tick={{ fill: "#94A3B8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} tick={{ fill: "#94A3B8", fontSize: 10 }} axisLine={false} tickLine={false} width={38} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "#F8FAFC" }} />
+                  <Bar dataKey="Revenue" fill={GOLD} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Expenses" fill={CORAL} radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              {/* This-month breakdown strip */}
+              {lastPnL && (
+                <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-3 gap-1 text-center">
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Revenue</p>
+                    <p className="text-xs font-bold text-slate-800 mt-0.5">{fmt(lastPnL.Revenue)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Expenses</p>
+                    <p className="text-xs font-bold mt-0.5" style={{ color: CORAL }}>{fmt(lastPnL.Expenses)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Net</p>
+                    <p className={`text-xs font-bold mt-0.5 ${lastPnL.Profit >= 0 ? "text-green-600" : "text-red-500"}`}>
+                      {lastPnL.Profit >= 0 ? "+" : ""}{fmt(lastPnL.Profit)}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
