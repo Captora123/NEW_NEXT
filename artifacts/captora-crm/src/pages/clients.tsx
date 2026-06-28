@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListClients, useCreateClient, useUpdateClient, useDeleteClient,
+  useCreatePayment,
   getListClientsQueryKey,
 } from "@workspace/api-client-react";
 import type { Client, ClientInput } from "@workspace/api-client-react";
@@ -41,15 +42,18 @@ export default function Clients() {
   const ACCENT = theme.accent;
   const categories = config.serviceCategories;
 
+  const createPaymentMut = useCreatePayment();
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Client | null>(null);
   const [form, setForm] = useState<ClientInput>(emptyForm());
+  const [advancePayment, setAdvancePayment] = useState<number>(0);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
 
   const invalidate = () => qc.invalidateQueries({ queryKey: getListClientsQueryKey() });
 
-  const openAdd = () => { setEditing(null); setForm(emptyForm()); setOpen(true); };
+  const openAdd = () => { setEditing(null); setForm(emptyForm()); setAdvancePayment(0); setOpen(true); };
   const openEdit = (c: Client) => {
     setEditing(c);
     setForm({
@@ -61,6 +65,8 @@ export default function Clients() {
     setOpen(true);
   };
 
+  const today = new Date().toISOString().split("T")[0];
+
   const handleSave = () => {
     if (!form.name) { toast({ variant: "destructive", title: "Client name is required." }); return; }
     const payload = { ...form, packageAmount: Number(form.packageAmount) };
@@ -71,7 +77,27 @@ export default function Clients() {
       });
     } else {
       createMut.mutate({ data: payload }, {
-        onSuccess: () => { invalidate(); setOpen(false); toast({ title: "Client added" }); },
+        onSuccess: (created) => {
+          invalidate();
+          setOpen(false);
+          if (advancePayment > 0 && created?.id) {
+            createPaymentMut.mutate({
+              data: {
+                clientId: created.id,
+                amount: advancePayment,
+                paymentDate: today,
+                installmentType: "Advance",
+                mode: "Cash",
+                notes: "Advance payment at booking",
+              },
+            }, {
+              onSuccess: () => { invalidate(); toast({ title: `Client added · Advance ₹${advancePayment.toLocaleString("en-IN")} recorded` }); },
+              onError: () => toast({ title: "Client added (advance payment failed — add manually)", variant: "destructive" }),
+            });
+          } else {
+            toast({ title: "Client added" });
+          }
+        },
         onError: () => toast({ variant: "destructive", title: "Create failed" }),
       });
     }
@@ -255,6 +281,15 @@ export default function Clients() {
               <div className="space-y-1.5"><Label>Location / Venue</Label><Input value={form.venue || ""} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} placeholder="Studio / outdoor / venue name" /></div>
               <div className="space-y-1.5"><Label>Event / Shoot Date</Label><Input type="date" value={form.weddingDate || ""} onChange={e => setForm(f => ({ ...f, weddingDate: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label>Package Amount (₹)</Label><Input type="number" value={form.packageAmount || ""} onChange={e => setForm(f => ({ ...f, packageAmount: Number(e.target.value) }))} placeholder="150000" /></div>
+              {!editing && (
+                <div className="space-y-1.5">
+                  <Label>Advance Received (₹) <span className="text-slate-400 font-normal text-xs">optional</span></Label>
+                  <Input type="number" value={advancePayment || ""} onChange={e => setAdvancePayment(Number(e.target.value))} placeholder="e.g. 25000" />
+                  {advancePayment > 0 && (
+                    <p className="text-xs text-green-600 font-medium">✓ Will record ₹{advancePayment.toLocaleString("en-IN")} as Advance payment · Pending = ₹{((form.packageAmount || 0) - advancePayment).toLocaleString("en-IN")}</p>
+                  )}
+                </div>
+              )}
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Status</Label>
                 <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
