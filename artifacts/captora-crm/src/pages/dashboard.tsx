@@ -79,14 +79,23 @@ export default function Dashboard() {
   const [fyOpen, setFyOpen] = useState(false);
   const [showAllOverdue, setShowAllOverdue] = useState(false);
   const [showAllStaff, setShowAllStaff] = useState(false);
+  const [plRange, setPlRange] = useState<1 | 6 | 12>(6);
 
   const totalReceived = allPayments?.reduce((s, p) => s + p.amount, 0) ?? 0;
   // DUE = sum of per-client pending (accurate), not the global diff which can be wrong
   const totalPending = (overdueClients ?? []).reduce((s, c) => s + (c.totalPending ?? 0), 0);
   const totalPackage = totalReceived + totalPending;
   const pct = totalPackage > 0 ? Math.round((totalReceived / totalPackage) * 100) : 0;
-  const barData = chartData?.map(r => ({ month: r.month, Revenue: r.revenue, Expenses: r.expenses, Profit: r.profit })) ?? [];
-  const lastPnL = barData.length > 0 ? barData[barData.length - 1] : null;
+  const thisMonth = new Date().getMonth() + 1;
+  const allBarData = chartData?.map(r => ({ month: r.month, Revenue: r.revenue, Expenses: r.expenses, Profit: r.profit })) ?? [];
+  // Slice to requested range, keeping only months with data up to current month
+  const filledMonths = allBarData.filter(r => r.month <= thisMonth);
+  const barData = plRange === 12 ? allBarData : plRange === 6 ? filledMonths.slice(-6) : filledMonths.slice(-1);
+  // Summary totals for selected range
+  const rangeRevenue = barData.reduce((s, r) => s + r.Revenue, 0);
+  const rangeExpenses = barData.reduce((s, r) => s + r.Expenses, 0);
+  const rangeProfit = rangeRevenue - rangeExpenses;
+  const lastPnL = filledMonths.length > 0 ? filledMonths[filledMonths.length - 1] : null;
 
   const overdue = overdueClients ?? [];
   const visibleOverdue = showAllOverdue ? overdue : overdue.slice(0, 3);
@@ -306,31 +315,60 @@ export default function Dashboard() {
       {/* ── P&L + Team wages ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* P&L chart — full width on mobile, 3/5 on desktop */}
-        <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3">
+        <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 overflow-hidden">
+          {/* Card header */}
+          <div className="flex items-center justify-between px-4 sm:px-5 pt-4 sm:pt-5 pb-3 border-b border-slate-100">
             <div>
-              <h2 className="text-sm font-semibold text-slate-800">P&amp;L — Last 6 Months</h2>
+              <h2 className="text-sm font-bold text-slate-800 tracking-tight">Profit &amp; Loss</h2>
               {lastPnL && (
                 <p className="text-xs text-slate-400 mt-0.5">
-                  {xAxisLabel(lastPnL.month)}:&nbsp;
+                  This month:&nbsp;
                   <span className={lastPnL.Profit >= 0 ? "text-green-600 font-semibold" : "text-red-500 font-semibold"}>
                     {lastPnL.Profit >= 0 ? "+" : ""}{fmt(lastPnL.Profit)} net
                   </span>
                 </p>
               )}
             </div>
-            <Link href="/pnl">
-              <button className="text-xs font-semibold hover:underline flex items-center gap-1" style={{ color: CORAL }}>
-                Full P&amp;L <ArrowRight className="w-3 h-3" />
-              </button>
-            </Link>
+            <div className="flex items-center gap-2">
+              {/* Range toggle */}
+              <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
+                {([1, 6, 12] as const).map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setPlRange(r)}
+                    className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
+                    style={plRange === r
+                      ? { background: "#FFFFFF", color: "#0F172A", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }
+                      : { color: "#94A3B8" }}
+                  >
+                    {r === 1 ? "1M" : r === 6 ? "6M" : "12M"}
+                  </button>
+                ))}
+              </div>
+              <Link href="/profit">
+                <button className="hidden sm:flex items-center gap-1 text-xs font-semibold hover:underline" style={{ color: CORAL }}>
+                  Full P&amp;L <ArrowRight className="w-3 h-3" />
+                </button>
+              </Link>
+            </div>
           </div>
-          {barData.length === 0 ? (
-            <div className="h-36 flex items-center justify-center text-slate-300 text-sm">No data yet</div>
-          ) : (
-            <>
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={barData} barSize={14} barGap={2} margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
+
+          <div className="px-4 sm:px-5 pt-4 pb-4 sm:pb-5">
+            {/* Legend */}
+            <div className="flex items-center gap-3 mb-3">
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: GOLD }} />Revenue
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: CORAL }} />Expenses
+              </span>
+            </div>
+
+            {allBarData.length === 0 ? (
+              <div className="h-36 flex items-center justify-center text-slate-300 text-sm">No data yet</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={150}>
+                <BarChart data={barData} barSize={plRange === 1 ? 32 : plRange === 6 ? 16 : 10} barGap={2} margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
                   <XAxis dataKey="month" tickFormatter={xAxisLabel} tick={{ fill: "#94A3B8", fontSize: 10 }} axisLine={false} tickLine={false} />
                   <YAxis tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} tick={{ fill: "#94A3B8", fontSize: 10 }} axisLine={false} tickLine={false} width={38} />
@@ -339,27 +377,33 @@ export default function Dashboard() {
                   <Bar dataKey="Expenses" fill={CORAL} radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-              {/* This-month breakdown strip */}
-              {lastPnL && (
-                <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-3 gap-1 text-center">
-                  <div>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Revenue</p>
-                    <p className="text-xs font-bold text-slate-800 mt-0.5">{fmt(lastPnL.Revenue)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Expenses</p>
-                    <p className="text-xs font-bold mt-0.5" style={{ color: CORAL }}>{fmt(lastPnL.Expenses)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wide">Net</p>
-                    <p className={`text-xs font-bold mt-0.5 ${lastPnL.Profit >= 0 ? "text-green-600" : "text-red-500"}`}>
-                      {lastPnL.Profit >= 0 ? "+" : ""}{fmt(lastPnL.Profit)}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+            )}
+
+            {/* Summary strip for selected range */}
+            <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-3 gap-1">
+              <div className="text-center">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Revenue</p>
+                <p className="text-sm font-bold text-slate-800 mt-0.5">{fmt(rangeRevenue)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Expenses</p>
+                <p className="text-sm font-bold mt-0.5" style={{ color: CORAL }}>{fmt(rangeExpenses)}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Net</p>
+                <p className={`text-sm font-bold mt-0.5 ${rangeProfit >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  {rangeProfit >= 0 ? "+" : ""}{fmt(rangeProfit)}
+                </p>
+              </div>
+            </div>
+
+            {/* Mobile full P&L link */}
+            <Link href="/profit">
+              <button className="sm:hidden mt-3 w-full py-2 text-xs font-semibold rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors flex items-center justify-center gap-1">
+                View Full P&amp;L <ArrowRight className="w-3 h-3" />
+              </button>
+            </Link>
+          </div>
         </div>
 
         {/* Team Wages */}
