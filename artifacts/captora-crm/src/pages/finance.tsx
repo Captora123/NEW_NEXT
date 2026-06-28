@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetMonthlyPnL, useGetPnLChart,
-  useListPayments, useCreatePayment, useDeletePayment, useGetPaymentsSummary,
+  useListPayments, useCreatePayment, useUpdatePayment, useDeletePayment, useGetPaymentsSummary,
   getListPaymentsQueryKey, getGetPaymentsSummaryQueryKey,
   useListClients, useCreateClient, getListClientsQueryKey,
   useListExpenses, useCreateExpense, useDeleteExpense, useGetExpenseSummary,
@@ -13,7 +13,7 @@ import {
   getListFreelancersQueryKey,
 } from "@workspace/api-client-react";
 import type {
-  Payment, PaymentInput,
+  Payment, PaymentInput, PaymentUpdate,
   Expense, ExpenseInput,
   StaffMember, StaffInput,
   Freelancer, FreelancerInput,
@@ -181,11 +181,13 @@ function PaymentsTab() {
   const { data: clients } = useListClients();
   const { data: summary } = useGetPaymentsSummary();
   const createMut = useCreatePayment();
+  const updateMut = useUpdatePayment();
   const deleteMut = useDeletePayment();
   const createClientMut = useCreateClient();
   const { toast } = useToast();
 
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Payment | null>(null);
   const [form, setForm] = useState<PaymentInput>(emptyPayment());
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [addClientOpen, setAddClientOpen] = useState(false);
@@ -196,14 +198,29 @@ function PaymentsTab() {
     qc.invalidateQueries({ queryKey: getGetPaymentsSummaryQueryKey() });
   };
 
+  const openAdd = () => { setEditing(null); setForm(emptyPayment()); setOpen(true); };
+  const openEdit = (p: Payment) => {
+    setEditing(p);
+    setForm({ clientId: p.clientId, amount: p.amount, mode: p.mode, installmentType: p.installmentType, paymentDate: p.paymentDate, notes: p.notes || "" });
+    setOpen(true);
+  };
+
   const handleSave = () => {
     if (!form.clientId || !form.amount) {
       toast({ variant: "destructive", title: "Client and amount are required." }); return;
     }
-    createMut.mutate({ data: { ...form, amount: Number(form.amount) } }, {
-      onSuccess: () => { invalidate(); setOpen(false); setForm(emptyPayment()); toast({ title: "Payment recorded ✓" }); },
-      onError: () => toast({ variant: "destructive", title: "Failed to record payment" }),
-    });
+    if (editing) {
+      const update: PaymentUpdate = { amount: Number(form.amount), mode: form.mode, installmentType: form.installmentType, paymentDate: form.paymentDate, notes: form.notes };
+      updateMut.mutate({ id: editing.id, data: update }, {
+        onSuccess: () => { invalidate(); setOpen(false); setEditing(null); toast({ title: "Payment updated ✓" }); },
+        onError: () => toast({ variant: "destructive", title: "Failed to update payment" }),
+      });
+    } else {
+      createMut.mutate({ data: { ...form, amount: Number(form.amount) } }, {
+        onSuccess: () => { invalidate(); setOpen(false); setForm(emptyPayment()); toast({ title: "Payment recorded ✓" }); },
+        onError: () => toast({ variant: "destructive", title: "Failed to record payment" }),
+      });
+    }
   };
 
   const handleAddClient = () => {
@@ -254,7 +271,7 @@ function PaymentsTab() {
 
       {/* Actions + table */}
       <div className="flex justify-end">
-        <button onClick={() => { setForm(emptyPayment()); setOpen(true); }}
+        <button onClick={openAdd}
           className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold"
           style={{ background: CORAL }}
           onMouseEnter={e => (e.currentTarget.style.background = "#C9432C")}
@@ -283,7 +300,10 @@ function PaymentsTab() {
                   <td className="px-5 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${MODE_COLORS[p.mode] || "bg-slate-100 text-slate-600"}`}>{p.mode}</span></td>
                   <td className="px-5 py-4 text-xs text-slate-400 max-w-[140px] truncate">{p.notes || "—"}</td>
                   <td className="px-5 py-4">
-                    <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -293,20 +313,22 @@ function PaymentsTab() {
         </div>
       )}
 
-      {/* Record dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      {/* Record / Edit dialog */}
+      <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Record Payment</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? "Edit Payment" : "Record Payment"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Client *</Label>
-                <button onClick={() => setAddClientOpen(true)}
-                  className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border border-dashed border-slate-300 text-slate-500 hover:border-[#E0533C] hover:text-[#E0533C] transition-colors">
-                  <Plus className="w-3 h-3" />New Client
-                </button>
+                {!editing && (
+                  <button onClick={() => setAddClientOpen(true)}
+                    className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border border-dashed border-slate-300 text-slate-500 hover:border-[#E0533C] hover:text-[#E0533C] transition-colors">
+                    <Plus className="w-3 h-3" />New Client
+                  </button>
+                )}
               </div>
-              <Select value={String(form.clientId || "")} onValueChange={v => setForm(f => ({ ...f, clientId: Number(v) }))}>
+              <Select value={String(form.clientId || "")} onValueChange={v => setForm(f => ({ ...f, clientId: Number(v) }))} disabled={!!editing}>
                 <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
                 <SelectContent>{clients?.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
@@ -342,8 +364,10 @@ function PaymentsTab() {
               <div className="space-y-1.5 col-span-2"><Label>Notes</Label><Input value={form.notes || ""} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="e.g. Advance payment for Sharma wedding" /></div>
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={handleSave} disabled={createMut.isPending} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: CORAL }}>Record Payment</button>
-              <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
+              <button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: CORAL }}>
+                {editing ? "Save Changes" : "Record Payment"}
+              </button>
+              <Button variant="outline" onClick={() => { setOpen(false); setEditing(null); }} className="flex-1">Cancel</Button>
             </div>
           </div>
         </DialogContent>
