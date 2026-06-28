@@ -36,12 +36,13 @@ async function calcPnL(month: number, year: number) {
   if (paidSalaryRecords.length > 0) {
     totalSalaries = paidSalaryRecords.reduce((sum, s) => sum + parseFloat(s.amount), 0);
   } else {
-    const monthStart = new Date(year, month - 1, 1);
+    // Include anyone who joined on or before the last day of the month
+    const monthEnd = new Date(year, month, 0); // day-0 of next month = last day of current month
     totalSalaries = staff
       .filter((s) => {
         if (!s.joiningDate) return true;
         const joined = new Date(s.joiningDate);
-        return joined <= monthStart;
+        return joined <= monthEnd;
       })
       .reduce((sum, s) => sum + parseFloat(s.monthlySalary), 0);
   }
