@@ -850,11 +850,11 @@ function TeamTab() {
 // MAIN FINANCE PAGE
 // ─────────────────────────────────────────
 type TabId = "pnl" | "payments" | "expenses" | "team";
-const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "pnl", label: "P&L Overview", icon: TrendingUp },
-  { id: "payments", label: "Payments", icon: Wallet },
-  { id: "expenses", label: "Expenses & Investments", icon: ReceiptText },
-  { id: "team", label: "Team Costs", icon: Users },
+const TABS: { id: TabId; label: string; short: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "pnl",      label: "P&L Overview",          short: "P&L",      icon: TrendingUp },
+  { id: "payments", label: "Payments",               short: "Payments", icon: Wallet },
+  { id: "expenses", label: "Expenses & Investments", short: "Expenses", icon: ReceiptText },
+  { id: "team",     label: "Team Costs",             short: "Team",     icon: Users },
 ];
 
 export default function Finance() {
@@ -868,16 +868,32 @@ export default function Finance() {
         <p className="text-sm mt-0.5" style={{ color: "#94A3B8" }}>Profit & loss · payments · expenses · team costs</p>
       </div>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit overflow-x-auto">
+      {/* Tab bar — 2×2 grid on mobile, pill row on desktop */}
+      <div className="grid grid-cols-2 gap-1.5 sm:hidden bg-white border border-slate-200 rounded-xl p-1.5">
         {TABS.map(t => {
           const active = tab === t.id;
           return (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${active ? "text-white shadow-sm" : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"}`}
-              style={{ background: active ? CORAL : "transparent" }}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-sm font-semibold transition-all"
+              style={{ background: active ? CORAL : "transparent", color: active ? "#FFFFFF" : "#64748B" }}
+            >
+              <t.icon className="w-4 h-4 flex-shrink-0" />
+              {t.short}
+            </button>
+          );
+        })}
+      </div>
+      <div className="hidden sm:flex gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit">
+        {TABS.map(t => {
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
+              style={{ background: active ? CORAL : "transparent", color: active ? "#FFFFFF" : "#64748B" }}
             >
               <t.icon className="w-4 h-4" />
               {t.label}
