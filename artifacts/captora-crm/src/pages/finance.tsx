@@ -281,36 +281,63 @@ function PaymentsTab() {
       </div>
 
       {isLoading ? <p className="text-sm text-slate-400">Loading payments...</p> : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                {["Client", "Date", "Amount", "Type", "Mode", "Notes", ""].map(h => (
-                  <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {payments?.map((p: Payment) => (
-                <tr key={p.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                  <td className="px-5 py-4 text-sm font-bold text-slate-800">{clientName(p.clientId)}</td>
-                  <td className="px-5 py-4 text-sm text-slate-600">{p.paymentDate}</td>
-                  <td className="px-5 py-4 text-sm font-bold text-green-700">{fmt(p.amount)}</td>
-                  <td className="px-5 py-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">{p.installmentType}</span></td>
-                  <td className="px-5 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${MODE_COLORS[p.mode] || "bg-slate-100 text-slate-600"}`}>{p.mode}</span></td>
-                  <td className="px-5 py-4 text-xs text-slate-400 max-w-[140px] truncate">{p.notes || "—"}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex gap-1.5">
-                      <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </td>
+        <>
+          {/* Mobile cards */}
+          <div className="sm:hidden space-y-2">
+            {payments?.map((p: Payment) => (
+              <div key={p.id} className="bg-white rounded-xl border border-slate-200 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 truncate">{clientName(p.clientId)}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{p.paymentDate}</p>
+                  </div>
+                  <p className="text-base font-bold text-green-700 flex-shrink-0">{fmt(p.amount)}</p>
+                </div>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">{p.installmentType}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${MODE_COLORS[p.mode] || "bg-slate-100 text-slate-600"}`}>{p.mode}</span>
+                  {p.notes && <span className="text-xs text-slate-400 truncate max-w-[140px]">{p.notes}</span>}
+                </div>
+                <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100 justify-end">
+                  <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-4 h-4" /></button>
+                  <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </div>
+            ))}
+            {!payments?.length && <div className="py-10 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-200">No payments recorded yet.</div>}
+          </div>
+          {/* Desktop table */}
+          <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  {["Client", "Date", "Amount", "Type", "Mode", "Notes", ""].map(h => (
+                    <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{h}</th>
+                  ))}
                 </tr>
-              ))}
-              {!payments?.length && <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-400 text-sm">No payments recorded yet.</td></tr>}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {payments?.map((p: Payment) => (
+                  <tr key={p.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-4 text-sm font-bold text-slate-800">{clientName(p.clientId)}</td>
+                    <td className="px-5 py-4 text-sm text-slate-600">{p.paymentDate}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-green-700">{fmt(p.amount)}</td>
+                    <td className="px-5 py-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">{p.installmentType}</span></td>
+                    <td className="px-5 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${MODE_COLORS[p.mode] || "bg-slate-100 text-slate-600"}`}>{p.mode}</span></td>
+                    <td className="px-5 py-4 text-xs text-slate-400 max-w-[140px] truncate">{p.notes || "—"}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex gap-1.5">
+                        <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!payments?.length && <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-400 text-sm">No payments recorded yet.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Record / Edit dialog */}
@@ -483,17 +510,17 @@ function ExpensesTab() {
       )}
 
       {/* Filter + Add */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="flex gap-1.5 flex-wrap flex-1">
           {["All", ...CATEGORIES].map(c => (
             <button key={c} onClick={() => setFilter(c)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${filter === c ? "bg-[#E0533C] text-white border-[#E0533C]" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}>
+              className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${filter === c ? "bg-[#E0533C] text-white border-[#E0533C]" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}>
               {c}
             </button>
           ))}
         </div>
         <button onClick={() => { setForm(emptyExpense()); setOpen(true); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold flex-shrink-0"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold flex-shrink-0 w-full sm:w-auto justify-center"
           style={{ background: CORAL }}
           onMouseEnter={e => (e.currentTarget.style.background = "#C9432C")}
           onMouseLeave={e => (e.currentTarget.style.background = CORAL)}>
@@ -502,33 +529,59 @@ function ExpensesTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Table */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 overflow-x-auto">
-          {isLoading ? <p className="p-8 text-sm text-slate-400">Loading...</p> : (
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  {["Description", "Category", "Date", "Paid By", "Amount", ""].map(h => (
-                    <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
+        {/* List area */}
+        <div className="lg:col-span-2 space-y-2 sm:space-y-0">
+          {isLoading ? <p className="text-sm text-slate-400 py-8">Loading...</p> : (
+            <>
+              {/* Mobile cards */}
+              <div className="sm:hidden space-y-2">
                 {filtered?.map((e: Expense) => (
-                  <tr key={e.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-800">{e.description || "—"}</td>
-                    <td className="px-5 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${CAT_COLORS[e.category] || CAT_COLORS.Other}`}>{e.category}</span></td>
-                    <td className="px-5 py-4 text-sm text-slate-600">{e.expenseDate}</td>
-                    <td className="px-5 py-4 text-sm text-slate-500">{e.paidBy || "—"}</td>
-                    <td className="px-5 py-4 text-sm font-bold text-slate-800">{fmt(e.amount)}</td>
-                    <td className="px-5 py-4">
-                      <button onClick={() => setDeleteId(e.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                    </td>
-                  </tr>
+                  <div key={e.id} className="bg-white rounded-xl border border-slate-200 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{e.description || "—"}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{e.expenseDate}{e.paidBy ? ` · ${e.paidBy}` : ""}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <p className="text-sm font-bold text-slate-800">{fmt(e.amount)}</p>
+                        <button onClick={() => setDeleteId(e.id)} className="p-1.5 rounded-lg text-slate-300 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${CAT_COLORS[e.category] || CAT_COLORS.Other}`}>{e.category}</span>
+                    </div>
+                  </div>
                 ))}
-                {!filtered?.length && <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-400 text-sm">No expenses recorded{filter !== "All" ? ` in "${filter}"` : ""} yet.</td></tr>}
-              </tbody>
-            </table>
+                {!filtered?.length && <div className="py-10 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-200">No expenses recorded{filter !== "All" ? ` in "${filter}"` : ""} yet.</div>}
+              </div>
+              {/* Desktop table */}
+              <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100">
+                      {["Description", "Category", "Date", "Paid By", "Amount", ""].map(h => (
+                        <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered?.map((e: Expense) => (
+                      <tr key={e.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors">
+                        <td className="px-5 py-4 text-sm font-semibold text-slate-800">{e.description || "—"}</td>
+                        <td className="px-5 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${CAT_COLORS[e.category] || CAT_COLORS.Other}`}>{e.category}</span></td>
+                        <td className="px-5 py-4 text-sm text-slate-600">{e.expenseDate}</td>
+                        <td className="px-5 py-4 text-sm text-slate-500">{e.paidBy || "—"}</td>
+                        <td className="px-5 py-4 text-sm font-bold text-slate-800">{fmt(e.amount)}</td>
+                        <td className="px-5 py-4">
+                          <button onClick={() => setDeleteId(e.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                        </td>
+                      </tr>
+                    ))}
+                    {!filtered?.length && <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-400 text-sm">No expenses recorded{filter !== "All" ? ` in "${filter}"` : ""} yet.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
 
@@ -704,7 +757,30 @@ function TeamTab() {
             <Plus className="w-4 h-4" />Add Staff
           </button>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        {/* Staff — mobile cards */}
+        <div className="sm:hidden space-y-2">
+          {staffList?.map((s: StaffMember) => (
+            <div key={s.id} className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-800">{s.name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{s.role}{s.phone ? ` · ${s.phone}` : ""}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Joined {s.joiningDate}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <p className="text-sm font-bold" style={{ color: CORAL }}>{fmt(s.monthlySalary)}<span className="text-xs text-slate-400 font-normal">/mo</span></p>
+                </div>
+              </div>
+              <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100 justify-end">
+                <button onClick={() => openEditStaff(s)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-4 h-4" /></button>
+                <button onClick={() => setDeleteStaffId(s.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+          {!staffList?.length && <div className="py-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-200">No staff added yet.</div>}
+        </div>
+        {/* Staff — desktop table */}
+        <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
@@ -750,7 +826,28 @@ function TeamTab() {
             <Plus className="w-4 h-4" />Add Freelancer
           </button>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        {/* Freelancers — mobile cards */}
+        <div className="sm:hidden space-y-2">
+          {freelancers?.map((f: Freelancer) => (
+            <div key={f.id} className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-800">{f.name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{f.role}{f.phone ? ` · ${f.phone}` : ""}</p>
+                  {f.bankDetails && <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[200px]">{f.bankDetails}</p>}
+                </div>
+                <p className="text-sm font-bold flex-shrink-0" style={{ color: CORAL }}>{fmt(f.perShootRate)}<span className="text-xs text-slate-400 font-normal">/shoot</span></p>
+              </div>
+              <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100 justify-end">
+                <button onClick={() => openEditFL(f)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Pencil className="w-4 h-4" /></button>
+                <button onClick={() => setDeleteFLId(f.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+          {!freelancers?.length && <div className="py-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-200">No freelancers added yet.</div>}
+        </div>
+        {/* Freelancers — desktop table */}
+        <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
