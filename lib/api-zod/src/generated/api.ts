@@ -47,6 +47,7 @@ export const GetMeResponse = zod.object({
  */
 export const GetDashboardSummaryResponse = zod.object({
   "todayShootsCount": zod.number(),
+  "thisMonthShootsCount": zod.number(),
   "thisMonthRevenue": zod.number(),
   "lastMonthRevenue": zod.number(),
   "totalLeadsThisMonth": zod.number(),

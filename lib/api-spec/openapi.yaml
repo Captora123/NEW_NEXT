@@ -1231,6 +1231,7 @@ components:
       type: object
       required:
         - todayShootsCount
+        - thisMonthShootsCount
         - thisMonthRevenue
         - lastMonthRevenue
         - totalLeadsThisMonth
@@ -1240,6 +1241,8 @@ components:
         - netProfitThisMonth
       properties:
         todayShootsCount:
+          type: integer
+        thisMonthShootsCount:
           type: integer
         thisMonthRevenue:
           type: number

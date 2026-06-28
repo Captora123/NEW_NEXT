@@ -26,6 +26,7 @@ export interface AuthToken {
 
 export interface DashboardSummary {
   todayShootsCount: number;
+  thisMonthShootsCount: number;
   thisMonthRevenue: number;
   lastMonthRevenue: number;
   totalLeadsThisMonth: number;

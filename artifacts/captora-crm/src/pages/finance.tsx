@@ -209,17 +209,27 @@ function PaymentsTab() {
     if (!form.clientId || !form.amount) {
       toast({ variant: "destructive", title: "Client and amount are required." }); return;
     }
+    const newAmount = Number(form.amount);
     if (editing) {
-      const update: PaymentUpdate = { amount: Number(form.amount), mode: form.mode, installmentType: form.installmentType, paymentDate: form.paymentDate, notes: form.notes };
+      const update: PaymentUpdate = { amount: newAmount, mode: form.mode, installmentType: form.installmentType, paymentDate: form.paymentDate, notes: form.notes };
       updateMut.mutate({ id: editing.id, data: update }, {
         onSuccess: () => { invalidate(); setOpen(false); setEditing(null); toast({ title: "Payment updated ✓" }); },
         onError: () => toast({ variant: "destructive", title: "Failed to update payment" }),
       });
     } else {
-      createMut.mutate({ data: { ...form, amount: Number(form.amount) } }, {
-        onSuccess: () => { invalidate(); setOpen(false); setForm(emptyPayment()); toast({ title: "Payment recorded ✓" }); },
-        onError: () => toast({ variant: "destructive", title: "Failed to record payment" }),
-      });
+      const existing = payments?.find(p => p.clientId === form.clientId && p.installmentType === form.installmentType);
+      if (existing) {
+        const merged = existing.amount + newAmount;
+        updateMut.mutate({ id: existing.id, data: { amount: merged, notes: form.notes || existing.notes || "" } }, {
+          onSuccess: () => { invalidate(); setOpen(false); setForm(emptyPayment()); toast({ title: `₹${newAmount.toLocaleString("en-IN")} added → total ₹${merged.toLocaleString("en-IN")} ✓` }); },
+          onError: () => toast({ variant: "destructive", title: "Failed to update payment" }),
+        });
+      } else {
+        createMut.mutate({ data: { ...form, amount: newAmount } }, {
+          onSuccess: () => { invalidate(); setOpen(false); setForm(emptyPayment()); toast({ title: "Payment recorded ✓" }); },
+          onError: () => toast({ variant: "destructive", title: "Failed to record payment" }),
+        });
+      }
     }
   };
 

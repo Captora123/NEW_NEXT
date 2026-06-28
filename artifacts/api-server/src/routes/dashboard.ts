@@ -56,6 +56,10 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
   const netProfitThisMonth = thisMonthRevenue - thisMonthFreelancerCosts - thisMonthSalaries - thisMonthExpenses;
 
   const todayShootsCount = shoots.filter((s) => s.shootDate === todayStr).length;
+  const thisMonthShootsCount = shoots.filter((s) => {
+    const d = new Date(s.shootDate);
+    return d.getMonth() + 1 === thisMonth && d.getFullYear() === thisYear;
+  }).length;
 
   const leadStatuses = ["Lead", "Contacted"];
   const totalLeadsThisMonth = clients.filter((c) => {
@@ -77,6 +81,7 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
 
   res.json({
     todayShootsCount,
+    thisMonthShootsCount,
     thisMonthRevenue,
     lastMonthRevenue,
     totalLeadsThisMonth,

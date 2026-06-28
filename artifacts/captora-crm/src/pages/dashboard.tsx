@@ -69,7 +69,8 @@ export default function Dashboard() {
   const [showAllStaff, setShowAllStaff] = useState(false);
 
   const totalReceived = allPayments?.reduce((s, p) => s + p.amount, 0) ?? 0;
-  const totalPending = summary?.pendingPaymentsTotal ?? 0;
+  // DUE = sum of per-client pending (accurate), not the global diff which can be wrong
+  const totalPending = (overdueClients ?? []).reduce((s, c) => s + (c.totalPending ?? 0), 0);
   const totalPackage = totalReceived + totalPending;
   const pct = totalPackage > 0 ? Math.round((totalReceived / totalPackage) * 100) : 0;
   const barData = chartData?.map(r => ({ month: r.month, Revenue: r.revenue })) ?? [];
@@ -166,44 +167,52 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Quick info row ── */}
+      {/* ── Quick info row (all cards clickable) ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div className="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <Camera className="w-4 h-4 text-blue-500" />
+        <Link href="/shoots">
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-2.5 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <Camera className="w-4 h-4 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Today's Shoots</p>
+              <p className="text-base font-bold text-slate-800">{summary?.todayShootsCount ?? 0}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs text-slate-400">Today's Shoots</p>
-            <p className="text-base font-bold text-slate-800">{summary?.todayShootsCount ?? 0}</p>
+        </Link>
+        <Link href="/shoots">
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-2.5 hover:border-orange-300 hover:shadow-sm transition-all cursor-pointer">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#FFF1F0" }}>
+              <Camera className="w-4 h-4" style={{ color: CORAL }} />
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Month Shoots</p>
+              <p className="text-base font-bold text-slate-800">{summary?.thisMonthShootsCount ?? 0}</p>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
-            <Clock className="w-4 h-4 text-violet-500" />
+        </Link>
+        <Link href="/deliverables">
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-2.5 hover:border-violet-300 hover:shadow-sm transition-all cursor-pointer">
+            <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0">
+              <Clock className="w-4 h-4 text-violet-500" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Pending Delivery</p>
+              <p className="text-base font-bold text-slate-800">{summary?.pendingDeliverablesCount ?? 0}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs text-slate-400">Pending Deliveries</p>
-            <p className="text-base font-bold text-slate-800">{summary?.pendingDeliverablesCount ?? 0}</p>
+        </Link>
+        <Link href="/clients">
+          <div className="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-2.5 hover:border-green-300 hover:shadow-sm transition-all cursor-pointer">
+            <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
+              <Users className="w-4 h-4 text-green-500" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-400">Confirmed</p>
+              <p className="text-base font-bold text-slate-800">{summary?.confirmedBookingsCount ?? 0}</p>
+            </div>
           </div>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
-            <Users className="w-4 h-4 text-green-500" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-400">Confirmed Bookings</p>
-            <p className="text-base font-bold text-slate-800">{summary?.confirmedBookingsCount ?? 0}</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-3 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "#FFF1F0" }}>
-            <BarChart2 className="w-4 h-4" style={{ color: CORAL }} />
-          </div>
-          <div>
-            <p className="text-xs text-slate-400">This Month</p>
-            <p className="text-base font-bold text-slate-800">{fmt(summary?.thisMonthRevenue ?? 0)}</p>
-          </div>
-        </div>
+        </Link>
       </div>
 
       {/* ── Overdue clients (most important — show prominently) ── */}
