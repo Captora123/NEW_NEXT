@@ -6,3 +6,9 @@ id = "AbmjZFS-7LSwZ79LP-gQs"
 uri = "file://captora-crm-production.zip"
 type = "unspecified"
 title = "Captora CRM — Node.js Production Build"
+
+[[outputs]]
+id = "4moIHboaCT_TaT3cliozQ"
+uri = "file://captora-nextjs.zip"
+type = "unspecified"
+title = "Captora CRM (Next.js)"
