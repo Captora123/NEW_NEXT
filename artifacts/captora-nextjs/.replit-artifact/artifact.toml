@@ -1,0 +1,22 @@
+kind = "web"
+previewPath = "/"
+title = "Captora CRM (Next.js)"
+version = "1.0.0"
+id = "captora-nextjs"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 3002
+
+[services.development]
+run = "pnpm --filter @workspace/captora-nextjs run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/captora-nextjs", "run", "build" ]
+run = "pnpm --filter @workspace/captora-nextjs run start"
+
+[services.env]
+PORT = "3002"
+BASE_PATH = "/"

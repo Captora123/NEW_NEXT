@@ -1,2 +1,3 @@
 - [Sidebar nav mapping](sidebar-nav.md) — sidebar labels differ from page names; Projects=/clients, Events=/shoots, Post Production=/deliverables, Finance=/profit.
 - [Light theme design system](design-system.md) — off-white bg (#F5F5EE), white cards, coral (#E0533C) accent, dark slate sidebar (#1E293B), 12px card radius.
+- [Next.js migration](nextjs-migration.md) — captora-crm (Vite) + api-server (Express) replaced by captora-nextjs (Next.js 15 App Router) at port 3002.

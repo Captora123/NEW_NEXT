@@ -1,0 +1,888 @@
+"use client";
+
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  useGetMonthlyPnL, useGetPnLChart,
+  useListPayments, useCreatePayment, useUpdatePayment, useDeletePayment, useGetPaymentsSummary,
+  getListPaymentsQueryKey, getGetPaymentsSummaryQueryKey,
+  useListClients, useCreateClient, getListClientsQueryKey,
+  useListExpenses, useCreateExpense, useDeleteExpense, useGetExpenseSummary,
+  getListExpensesQueryKey, getGetExpenseSummaryQueryKey,
+  useListStaff, useCreateStaffMember, useUpdateStaffMember, useDeleteStaffMember,
+  getListStaffQueryKey,
+  useListFreelancers, useCreateFreelancer, useUpdateFreelancer, useDeleteFreelancer,
+  getListFreelancersQueryKey,
+} from "@workspace/api-client-react";
+import type {
+  Payment, PaymentInput, PaymentUpdate,
+  ExpenseInput,
+  StaffMember, StaffInput,
+  Freelancer, FreelancerInput,
+  ClientInput,
+} from "@workspace/api-client-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Plus, Trash2, Pencil, TrendingUp, TrendingDown,
+  ChevronDown, IndianRupee, ReceiptText, Users, Wallet,
+} from "lucide-react";
+
+const CORAL = "#E0533C";
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const NOW = new Date();
+
+function fmt(v: number) { return "₹" + Math.round(v).toLocaleString("en-IN"); }
+
+// ─────────────────────────────────────────
+// P&L TAB
+// ─────────────────────────────────────────
+const PnLTooltip = ({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string; color: string }[]; label?: number }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-lg text-sm">
+      <p className="text-slate-500 font-medium mb-1.5">{label !== undefined ? MONTHS[label - 1] : ""}</p>
+      {payload.map(p => <p key={p.name} className="font-semibold" style={{ color: p.color }}>{p.name}: {fmt(p.value)}</p>)}
+    </div>
+  );
+};
+
+function PnLTab() {
+  const [month, setMonth] = useState(NOW.getMonth() + 1);
+  const [year, setYear] = useState(NOW.getFullYear());
+  const { data: pnl, isLoading } = useGetMonthlyPnL({ month, year });
+  const { data: chart } = useGetPnLChart();
+
+  const net = pnl?.netProfit ?? 0;
+  const isProfit = net >= 0;
+  const chartData = chart?.map(r => ({ month: r.month, Revenue: r.revenue, Expenses: r.expenses, Profit: r.profit })) ?? [];
+
+  const cards = [
+    { label: "Revenue", value: pnl?.totalRevenue ?? 0, color: CORAL, bg: "#FFF1F0" },
+    { label: "Freelancer Costs", value: pnl?.totalFreelancerCosts ?? 0, color: "#DC2626", bg: "#FEF2F2" },
+    { label: "Staff Salaries", value: pnl?.totalSalaries ?? 0, color: "#D97706", bg: "#FFFBEB" },
+    { label: "Other Expenses", value: pnl?.totalExpenses ?? 0, color: "#7C3AED", bg: "#F5F3FF" },
+  ];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex gap-2">
+        <div className="relative">
+          <select value={month} onChange={e => setMonth(Number(e.target.value))}
+            className="appearance-none bg-white border border-slate-200 text-sm font-medium px-4 py-2.5 pr-8 rounded-xl text-slate-700 focus:outline-none focus:border-[#E0533C] cursor-pointer shadow-sm">
+            {MONTHS.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        </div>
+        <div className="relative">
+          <select value={year} onChange={e => setYear(Number(e.target.value))}
+            className="appearance-none bg-white border border-slate-200 text-sm font-medium px-4 py-2.5 pr-8 rounded-xl text-slate-700 focus:outline-none focus:border-[#E0533C] cursor-pointer shadow-sm">
+            {[2023, 2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        </div>
+      </div>
+
+      {isLoading
+        ? <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1,2,3,4].map(i=><div key={i} className="h-24 bg-slate-100 animate-pulse rounded-xl"/>)}</div>
+        : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {cards.map(c => (
+              <div key={c.label} className="bg-white rounded-xl border border-slate-200 p-5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ background: c.bg }}>
+                  <IndianRupee className="w-4 h-4" style={{ color: c.color }} />
+                </div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">{c.label}</p>
+                <p className="text-xl font-bold" style={{ color: c.color }}>{fmt(c.value)}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+      <div className={`rounded-xl border-2 p-6 flex items-center gap-5 ${isProfit ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
+        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${isProfit ? "bg-green-100" : "bg-red-100"}`}>
+          {isProfit ? <TrendingUp className="w-7 h-7 text-green-600" /> : <TrendingDown className="w-7 h-7 text-red-600" />}
+        </div>
+        <div>
+          <p className={`text-sm font-semibold ${isProfit ? "text-green-600" : "text-red-600"}`}>
+            Net {isProfit ? "Profit" : "Loss"} — {MONTHS[month - 1]} {year}
+          </p>
+          <p className={`text-4xl font-bold mt-0.5 ${isProfit ? "text-green-700" : "text-red-700"}`}>
+            {isProfit ? "+" : ""}{fmt(net)}
+          </p>
+        </div>
+      </div>
+
+      {chartData.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-sm font-bold text-slate-900">Year-to-Date Overview</h3>
+            <div className="flex gap-4 text-xs">
+              {[{ label:"Revenue", color: CORAL }, { label:"Expenses", color:"#CBD5E1" }, { label:"Profit", color:"#4ADE80" }].map(l => (
+                <span key={l.label} className="flex items-center gap-1.5 text-slate-500">
+                  <span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: l.color }} />{l.label}
+                </span>
+              ))}
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={chartData} barGap={3} barCategoryGap="35%">
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+              <XAxis dataKey="month" tickFormatter={v => MONTHS[v - 1] ?? v} tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} width={52} />
+              <Tooltip content={<PnLTooltip />} cursor={{ fill: "#F8FAFC" }} />
+              <Bar dataKey="Revenue" fill={CORAL} radius={[4,4,0,0]} />
+              <Bar dataKey="Expenses" fill="#CBD5E1" radius={[4,4,0,0]} />
+              <Bar dataKey="Profit" fill="#4ADE80" radius={[4,4,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// PAYMENTS TAB
+// ─────────────────────────────────────────
+const MODES = ["Cash", "Online", "Cheque", "Card", "UPI"];
+const PAY_TYPES = ["Advance", "Milestone", "Final", "Refund", "Other"];
+const MODE_COLORS: Record<string, string> = {
+  Cash: "bg-green-50 text-green-700 border border-green-200",
+  Online: "bg-blue-50 text-blue-700 border border-blue-200",
+  UPI: "bg-purple-50 text-purple-700 border border-purple-200",
+  Cheque: "bg-amber-50 text-amber-700 border border-amber-200",
+  Card: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+};
+const emptyPayment = (): PaymentInput => ({
+  clientId: 0, amount: 0, mode: "Cash", installmentType: "Advance",
+  paymentDate: NOW.toISOString().split("T")[0], notes: "",
+});
+const emptyClient = (): ClientInput => ({ name: "", phone: "", status: "Lead" });
+const QUICK_AMOUNTS = [10000, 20000, 30000, 50000, 75000, 100000];
+
+function PaymentsTab() {
+  const qc = useQueryClient();
+  const { data: payments, isLoading } = useListPayments();
+  const { data: clients } = useListClients();
+  const { data: summary } = useGetPaymentsSummary();
+  const createMut = useCreatePayment();
+  const updateMut = useUpdatePayment();
+  const deleteMut = useDeletePayment();
+  const createClientMut = useCreateClient();
+  const { toast } = useToast();
+
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Payment | null>(null);
+  const [form, setForm] = useState<PaymentInput>(emptyPayment());
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [addClientOpen, setAddClientOpen] = useState(false);
+  const [clientForm, setClientForm] = useState<ClientInput>(emptyClient());
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: getListPaymentsQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetPaymentsSummaryQueryKey() });
+  };
+
+  const openAdd = () => { setEditing(null); setForm(emptyPayment()); setOpen(true); };
+  const openEdit = (p: Payment) => {
+    setEditing(p);
+    setForm({ clientId: p.clientId, amount: p.amount, mode: p.mode, installmentType: p.installmentType, paymentDate: p.paymentDate, notes: p.notes || "" });
+    setOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!form.clientId || !form.amount) { toast({ variant: "destructive", title: "Client and amount are required." }); return; }
+    const newAmount = Number(form.amount);
+    if (editing) {
+      const update: PaymentUpdate = { amount: newAmount, mode: form.mode, installmentType: form.installmentType, paymentDate: form.paymentDate, notes: form.notes };
+      updateMut.mutate({ id: editing.id, data: update }, {
+        onSuccess: () => { invalidate(); setOpen(false); setEditing(null); toast({ title: "Payment updated ✓" }); },
+        onError: () => toast({ variant: "destructive", title: "Failed to update payment" }),
+      });
+    } else {
+      const existing = payments?.find(p => p.clientId === form.clientId && p.installmentType === form.installmentType);
+      if (existing) {
+        const merged = existing.amount + newAmount;
+        updateMut.mutate({ id: existing.id, data: { amount: merged, notes: form.notes || existing.notes || "" } }, {
+          onSuccess: () => { invalidate(); setOpen(false); setForm(emptyPayment()); toast({ title: `₹${newAmount.toLocaleString("en-IN")} added → total ₹${merged.toLocaleString("en-IN")} ✓` }); },
+          onError: () => toast({ variant: "destructive", title: "Failed to update payment" }),
+        });
+      } else {
+        createMut.mutate({ data: { ...form, amount: newAmount } }, {
+          onSuccess: () => { invalidate(); setOpen(false); setForm(emptyPayment()); toast({ title: "Payment recorded ✓" }); },
+          onError: () => toast({ variant: "destructive", title: "Failed to record payment" }),
+        });
+      }
+    }
+  };
+
+  const handleAddClient = () => {
+    if (!clientForm.name) { toast({ variant: "destructive", title: "Client name is required." }); return; }
+    createClientMut.mutate({ data: clientForm }, {
+      onSuccess: (newClient) => {
+        qc.invalidateQueries({ queryKey: getListClientsQueryKey() });
+        setForm(f => ({ ...f, clientId: newClient.id }));
+        setAddClientOpen(false); setClientForm(emptyClient());
+        toast({ title: `${newClient.name} added ✓` });
+      },
+      onError: () => toast({ variant: "destructive", title: "Failed to add client" }),
+    });
+  };
+
+  const handleDelete = (id: number) => {
+    deleteMut.mutate({ id }, {
+      onSuccess: () => { invalidate(); setDeleteId(null); toast({ title: "Payment deleted" }); },
+      onError: () => toast({ variant: "destructive", title: "Delete failed" }),
+    });
+  };
+
+  const clientName = (id: number) => clients?.find(c => c.id === id)?.name ?? `Client #${id}`;
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: "Total Received", value: summary?.totalReceived ?? 0, color: "#16A34A", bg: "#F0FDF4" },
+          { label: "Total Pending", value: summary?.totalPending ?? 0, color: CORAL, bg: "#FFF1F0" },
+          { label: "Transactions", value: payments?.length ?? 0, color: "#4F46E5", bg: "#EEF2FF" },
+        ].map(s => (
+          <div key={s.label} className="bg-white rounded-xl border border-slate-200 p-5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ background: s.bg }}>
+              <Wallet className="w-4 h-4" style={{ color: s.color }} />
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">{s.label}</p>
+            <p className="text-xl font-bold" style={{ color: s.color }}>
+              {s.label !== "Transactions" ? fmt(s.value) : s.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex justify-end">
+        <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold" style={{ background: CORAL }}>
+          <Plus className="w-4 h-4" />Record Payment
+        </button>
+      </div>
+
+      {isLoading ? <p className="text-sm text-slate-400">Loading payments...</p> : (
+        <>
+          <div className="sm:hidden space-y-2">
+            {payments?.map((p: Payment) => (
+              <div key={p.id} className="bg-white rounded-xl border border-slate-200 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-800 truncate">{clientName(p.clientId)}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{p.paymentDate}</p>
+                  </div>
+                  <p className="text-base font-bold text-green-700 flex-shrink-0">{fmt(p.amount)}</p>
+                </div>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">{p.installmentType}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${MODE_COLORS[p.mode] || "bg-slate-100 text-slate-600"}`}>{p.mode}</span>
+                </div>
+                <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100 justify-end">
+                  <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"><Pencil className="w-4 h-4" /></button>
+                  <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </div>
+            ))}
+            {!payments?.length && <div className="py-10 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-200">No payments recorded yet.</div>}
+          </div>
+
+          <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100">
+                  {["Client","Date","Amount","Type","Mode","Notes",""].map(h => <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {payments?.map((p: Payment) => (
+                  <tr key={p.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                    <td className="px-5 py-4 text-sm font-bold text-slate-800">{clientName(p.clientId)}</td>
+                    <td className="px-5 py-4 text-sm text-slate-600">{p.paymentDate}</td>
+                    <td className="px-5 py-4 text-sm font-bold text-green-700">{fmt(p.amount)}</td>
+                    <td className="px-5 py-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">{p.installmentType}</span></td>
+                    <td className="px-5 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${MODE_COLORS[p.mode] || "bg-slate-100 text-slate-600"}`}>{p.mode}</span></td>
+                    <td className="px-5 py-4 text-xs text-slate-400 max-w-[140px] truncate">{p.notes || "—"}</td>
+                    <td className="px-5 py-4">
+                      <div className="flex gap-1.5">
+                        <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => setDeleteId(p.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!payments?.length && <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-400 text-sm">No payments recorded yet.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) setEditing(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editing ? "Edit Payment" : "Record Payment"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Client *</Label>
+                {!editing && <button onClick={() => setAddClientOpen(true)} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border border-dashed border-slate-300 text-slate-500 hover:border-[#E0533C] hover:text-[#E0533C]"><Plus className="w-3 h-3" />New Client</button>}
+              </div>
+              <Select value={String(form.clientId || "")} onValueChange={v => setForm(f => ({ ...f, clientId: Number(v) }))} disabled={!!editing}>
+                <SelectTrigger><SelectValue placeholder="Select client" /></SelectTrigger>
+                <SelectContent>{clients?.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Amount (₹) *</Label>
+              <Input type="number" value={form.amount || ""} onChange={e => setForm(f => ({ ...f, amount: Number(e.target.value) }))} placeholder="50000" />
+              <div className="flex gap-1.5 flex-wrap mt-1">
+                {QUICK_AMOUNTS.map(a => (
+                  <button key={a} onClick={() => setForm(f => ({ ...f, amount: a }))}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${form.amount === a ? "bg-[#E0533C] text-white border-[#E0533C]" : "bg-white text-slate-600 border-slate-200 hover:border-[#E0533C] hover:text-[#E0533C]"}`}>
+                    {a >= 100000 ? `₹${a / 100000}L` : `₹${a / 1000}k`}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5"><Label>Date</Label><Input type="date" value={form.paymentDate || ""} onChange={e => setForm(f => ({ ...f, paymentDate: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Mode</Label>
+                <Select value={form.mode} onValueChange={v => setForm(f => ({ ...f, mode: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{MODES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5"><Label>Type</Label>
+                <Select value={form.installmentType} onValueChange={v => setForm(f => ({ ...f, installmentType: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{PAY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 col-span-2"><Label>Notes</Label><Input value={form.notes || ""} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="e.g. Advance for Sharma wedding" /></div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: CORAL }}>
+                {editing ? "Save Changes" : "Record Payment"}
+              </button>
+              <Button variant="outline" onClick={() => { setOpen(false); setEditing(null); }} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={addClientOpen} onOpenChange={setAddClientOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Add New Client</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5"><Label>Name *</Label><Input value={clientForm.name} onChange={e => setClientForm(f => ({ ...f, name: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>Phone</Label><Input value={clientForm.phone} onChange={e => setClientForm(f => ({ ...f, phone: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={clientForm.email || ""} onChange={e => setClientForm(f => ({ ...f, email: e.target.value }))} /></div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={handleAddClient} disabled={createClientMut.isPending} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: CORAL }}>Add Client</button>
+              <Button variant="outline" onClick={() => setAddClientOpen(false)} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Delete Payment?</DialogTitle></DialogHeader>
+          <p className="text-slate-500 text-sm">This cannot be undone.</p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="destructive" onClick={() => { if (deleteId) handleDelete(deleteId); }} disabled={deleteMut.isPending} className="flex-1">Delete</Button>
+            <Button variant="outline" onClick={() => setDeleteId(null)} className="flex-1">Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// EXPENSES TAB
+// ─────────────────────────────────────────
+const CATEGORIES = ["Equipment","Investment","Software","Marketing","Travel","Food","Rent","Utilities","Salary","Freelancer","Other"];
+const CAT_COLORS: Record<string, string> = {
+  Equipment: "bg-blue-50 text-blue-700 border border-blue-200",
+  Investment: "bg-violet-50 text-violet-700 border border-violet-200",
+  Software: "bg-purple-50 text-purple-700 border border-purple-200",
+  Marketing: "bg-pink-50 text-pink-700 border border-pink-200",
+  Travel: "bg-teal-50 text-teal-700 border border-teal-200",
+  Food: "bg-amber-50 text-amber-700 border border-amber-200",
+  Rent: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+  Utilities: "bg-cyan-50 text-cyan-700 border border-cyan-200",
+  Salary: "bg-orange-50 text-[#E0533C] border border-orange-200",
+  Freelancer: "bg-rose-50 text-rose-700 border border-rose-200",
+  Other: "bg-slate-100 text-slate-600 border border-slate-200",
+};
+const emptyExpense = (): ExpenseInput => ({
+  category: "Equipment", amount: 0,
+  expenseDate: NOW.toISOString().split("T")[0], description: "", paidBy: "Self",
+});
+
+function ExpensesTab() {
+  const qc = useQueryClient();
+  const { data: expenses, isLoading } = useListExpenses();
+  const { data: summary } = useGetExpenseSummary();
+  const createMut = useCreateExpense();
+  const deleteMut = useDeleteExpense();
+  const { toast } = useToast();
+
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<ExpenseInput>(emptyExpense());
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [filter, setFilter] = useState("All");
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: getListExpensesQueryKey() });
+    qc.invalidateQueries({ queryKey: getGetExpenseSummaryQueryKey() });
+  };
+
+  const handleSave = () => {
+    if (!form.amount || !form.category) { toast({ variant: "destructive", title: "Category and amount are required." }); return; }
+    createMut.mutate({ data: { ...form, amount: Number(form.amount) } }, {
+      onSuccess: () => { invalidate(); setOpen(false); setForm(emptyExpense()); toast({ title: "Expense recorded ✓" }); },
+      onError: () => toast({ variant: "destructive", title: "Failed to record expense" }),
+    });
+  };
+
+  const handleDelete = (id: number) => {
+    deleteMut.mutate({ id }, {
+      onSuccess: () => { invalidate(); setDeleteId(null); toast({ title: "Expense deleted" }); },
+      onError: () => toast({ variant: "destructive", title: "Delete failed" }),
+    });
+  };
+
+  const filtered = filter === "All" ? expenses : expenses?.filter(e => e.category === filter);
+  const investTotal = expenses?.filter(e => e.category === "Investment" || e.category === "Equipment").reduce((s, e) => s + e.amount, 0) ?? 0;
+
+  return (
+    <div className="space-y-5">
+      {investTotal > 0 && (
+        <div className="bg-violet-50 border border-violet-200 rounded-xl p-5 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-violet-500 mb-1">Business Investments</p>
+            <p className="text-2xl font-bold text-violet-700">{fmt(investTotal)}</p>
+            <p className="text-xs text-violet-400 mt-0.5">Equipment + Investment purchases</p>
+          </div>
+          <ReceiptText className="w-10 h-10 text-violet-300" />
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="flex gap-1.5 flex-wrap flex-1">
+          {["All", ...CATEGORIES].map(c => (
+            <button key={c} onClick={() => setFilter(c)}
+              className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-all ${filter === c ? "bg-[#E0533C] text-white border-[#E0533C]" : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"}`}>
+              {c}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => { setForm(emptyExpense()); setOpen(true); }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-white text-sm font-semibold flex-shrink-0" style={{ background: CORAL }}>
+          <Plus className="w-4 h-4" />Add Expense
+        </button>
+      </div>
+
+      {summary && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {summary.byCategory?.slice(0, 6).map((s: { category: string; total: number }) => (
+            <div key={s.category} className="bg-white rounded-xl border border-slate-200 p-4">
+              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${CAT_COLORS[s.category] || "bg-slate-100 text-slate-600"}`}>{s.category}</span>
+              <p className="text-base font-bold text-slate-800 mt-2">{fmt(s.total)}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {isLoading ? <p className="text-sm text-slate-400">Loading...</p> : (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                {["Date","Category","Description","Amount","Paid By",""].map(h => <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered?.map(e => (
+                <tr key={e.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                  <td className="px-5 py-4 text-sm text-slate-600">{e.expenseDate}</td>
+                  <td className="px-5 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${CAT_COLORS[e.category] || ""}`}>{e.category}</span></td>
+                  <td className="px-5 py-4 text-sm text-slate-700 max-w-[180px] truncate">{e.description || "—"}</td>
+                  <td className="px-5 py-4 text-sm font-bold text-slate-800">{fmt(e.amount)}</td>
+                  <td className="px-5 py-4 text-sm text-slate-500">{e.paidBy || "Self"}</td>
+                  <td className="px-5 py-4">
+                    <button onClick={() => setDeleteId(e.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+                  </td>
+                </tr>
+              ))}
+              {!filtered?.length && <tr><td colSpan={6} className="px-5 py-12 text-center text-slate-400 text-sm">No expenses recorded yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Add Expense</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5"><Label>Category</Label>
+                <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5"><Label>Amount (₹) *</Label><Input type="number" value={form.amount || ""} onChange={e => setForm(f => ({ ...f, amount: Number(e.target.value) }))} /></div>
+              <div className="space-y-1.5"><Label>Date</Label><Input type="date" value={form.expenseDate || ""} onChange={e => setForm(f => ({ ...f, expenseDate: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Paid By</Label><Input value={form.paidBy || ""} onChange={e => setForm(f => ({ ...f, paidBy: e.target.value }))} placeholder="Self" /></div>
+              <div className="space-y-1.5 col-span-2"><Label>Description</Label><Input value={form.description || ""} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Camera lens, software subscription…" /></div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={handleSave} disabled={createMut.isPending} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: CORAL }}>Record Expense</button>
+              <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteId !== null} onOpenChange={() => setDeleteId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Delete Expense?</DialogTitle></DialogHeader>
+          <p className="text-slate-500 text-sm">This cannot be undone.</p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="destructive" onClick={() => { if (deleteId) handleDelete(deleteId); }} disabled={deleteMut.isPending} className="flex-1">Delete</Button>
+            <Button variant="outline" onClick={() => setDeleteId(null)} className="flex-1">Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// TEAM TAB
+// ─────────────────────────────────────────
+const emptyStaff = (): StaffInput => ({ name: "", role: "", phone: "", monthlySalary: 0, joiningDate: NOW.toISOString().split("T")[0] });
+const emptyFL = (): FreelancerInput => ({ name: "", phone: "", role: "", perShootRate: 0, bankDetails: "" });
+
+function TeamTab() {
+  const qc = useQueryClient();
+  const { data: staff } = useListStaff();
+  const { data: freelancers } = useListFreelancers();
+  const { toast } = useToast();
+
+  const createStaff = useCreateStaffMember();
+  const updateStaff = useUpdateStaffMember();
+  const deleteStaff = useDeleteStaffMember();
+  const createFL = useCreateFreelancer();
+  const updateFL = useUpdateFreelancer();
+  const deleteFL = useDeleteFreelancer();
+
+  const invStaff = () => qc.invalidateQueries({ queryKey: getListStaffQueryKey() });
+  const invFL = () => qc.invalidateQueries({ queryKey: getListFreelancersQueryKey() });
+
+  const [staffOpen, setStaffOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+  const [staffForm, setStaffForm] = useState<StaffInput>(emptyStaff());
+  const [deleteStaffId, setDeleteStaffId] = useState<number | null>(null);
+
+  const [flOpen, setFlOpen] = useState(false);
+  const [editingFL, setEditingFL] = useState<Freelancer | null>(null);
+  const [flForm, setFlForm] = useState<FreelancerInput>(emptyFL());
+  const [deleteFLId, setDeleteFLId] = useState<number | null>(null);
+
+  const openAddStaff = () => { setEditingStaff(null); setStaffForm(emptyStaff()); setStaffOpen(true); };
+  const openEditStaff = (s: StaffMember) => { setEditingStaff(s); setStaffForm({ name: s.name, role: s.role, phone: s.phone || "", monthlySalary: s.monthlySalary || 0, joiningDate: s.joiningDate }); setStaffOpen(true); };
+  const openAddFL = () => { setEditingFL(null); setFlForm(emptyFL()); setFlOpen(true); };
+  const openEditFL = (f: Freelancer) => { setEditingFL(f); setFlForm({ name: f.name, phone: f.phone || "", role: f.role || "", perShootRate: f.perShootRate || 0, bankDetails: f.bankDetails || "" }); setFlOpen(true); };
+
+  const saveStaff = () => {
+    if (!staffForm.name || !staffForm.role) { toast({ variant: "destructive", title: "Name and role are required." }); return; }
+    if (editingStaff) {
+      updateStaff.mutate({ id: editingStaff.id, data: staffForm }, {
+        onSuccess: () => { invStaff(); setStaffOpen(false); toast({ title: "Staff updated ✓" }); },
+        onError: () => toast({ variant: "destructive", title: "Update failed" }),
+      });
+    } else {
+      createStaff.mutate({ data: staffForm }, {
+        onSuccess: () => { invStaff(); setStaffOpen(false); setStaffForm(emptyStaff()); toast({ title: "Staff member added ✓" }); },
+        onError: () => toast({ variant: "destructive", title: "Add failed" }),
+      });
+    }
+  };
+
+  const saveFL = () => {
+    if (!flForm.name || !flForm.phone) { toast({ variant: "destructive", title: "Name and phone are required." }); return; }
+    if (editingFL) {
+      updateFL.mutate({ id: editingFL.id, data: flForm }, {
+        onSuccess: () => { invFL(); setFlOpen(false); toast({ title: "Freelancer updated ✓" }); },
+        onError: () => toast({ variant: "destructive", title: "Update failed" }),
+      });
+    } else {
+      createFL.mutate({ data: flForm }, {
+        onSuccess: () => { invFL(); setFlOpen(false); setFlForm(emptyFL()); toast({ title: "Freelancer added ✓" }); },
+        onError: () => toast({ variant: "destructive", title: "Add failed" }),
+      });
+    }
+  };
+
+  const totalSalary = staff?.reduce((s, m) => s + (m.monthlySalary || 0), 0) ?? 0;
+  const totalFL = freelancers?.reduce((s, f) => s + (f.perShootRate || 0), 0) ?? 0;
+
+  return (
+    <div className="space-y-8">
+      {/* Staff */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">Staff Members</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Monthly payroll: <strong>{fmt(totalSalary)}/month</strong></p>
+          </div>
+          <button onClick={openAddStaff} className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-semibold" style={{ background: CORAL }}>
+            <Plus className="w-4 h-4" />Add Staff
+          </button>
+        </div>
+
+        <div className="sm:hidden space-y-2">
+          {staff?.map((s: StaffMember) => (
+            <div key={s.id} className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-bold text-slate-800">{s.name}</p>
+                  <p className="text-xs text-slate-400">{s.role}{s.phone ? ` · ${s.phone}` : ""}</p>
+                </div>
+                <p className="text-sm font-bold flex-shrink-0" style={{ color: CORAL }}>{fmt(s.monthlySalary || 0)}<span className="text-xs font-normal text-slate-400">/mo</span></p>
+              </div>
+              <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100 justify-end">
+                <button onClick={() => openEditStaff(s)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"><Pencil className="w-4 h-4" /></button>
+                <button onClick={() => setDeleteStaffId(s.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+          {!staff?.length && <div className="py-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-200">No staff added yet.</div>}
+        </div>
+
+        <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                {["Name","Role","Phone","Joining Date","Monthly Salary",""].map(h => <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {staff?.map((s: StaffMember) => (
+                <tr key={s.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                  <td className="px-5 py-4 text-sm font-bold text-slate-800">{s.name}</td>
+                  <td className="px-5 py-4 text-sm text-slate-600">{s.role}</td>
+                  <td className="px-5 py-4 text-sm text-slate-500">{s.phone}</td>
+                  <td className="px-5 py-4 text-sm text-slate-500">{s.joiningDate}</td>
+                  <td className="px-5 py-4 text-sm font-bold" style={{ color: CORAL }}>{fmt(s.monthlySalary || 0)}</td>
+                  <td className="px-5 py-4">
+                    <div className="flex gap-1.5">
+                      <button onClick={() => openEditStaff(s)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => setDeleteStaffId(s.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!staff?.length && <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">No staff added yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Freelancers */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">Freelancers</h3>
+            <p className="text-xs text-slate-400 mt-0.5">Total rate pool: <strong>{fmt(totalFL)}/shoot</strong></p>
+          </div>
+          <button onClick={openAddFL} className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-semibold" style={{ background: CORAL }}>
+            <Plus className="w-4 h-4" />Add Freelancer
+          </button>
+        </div>
+
+        <div className="sm:hidden space-y-2">
+          {freelancers?.map((f: Freelancer) => (
+            <div key={f.id} className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-bold text-slate-800">{f.name}</p>
+                  <p className="text-xs text-slate-400">{f.role}{f.phone ? ` · ${f.phone}` : ""}</p>
+                </div>
+                <p className="text-sm font-bold flex-shrink-0" style={{ color: CORAL }}>{fmt(f.perShootRate || 0)}<span className="text-xs font-normal text-slate-400">/shoot</span></p>
+              </div>
+              <div className="flex gap-2 mt-3 pt-2 border-t border-slate-100 justify-end">
+                <button onClick={() => openEditFL(f)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"><Pencil className="w-4 h-4" /></button>
+                <button onClick={() => setDeleteFLId(f.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+          {!freelancers?.length && <div className="py-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-slate-200">No freelancers added yet.</div>}
+        </div>
+
+        <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-100">
+                {["Name","Role","Phone","Bank Details","Per-Shoot Rate",""].map(h => <th key={h} className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-400">{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {freelancers?.map((f: Freelancer) => (
+                <tr key={f.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                  <td className="px-5 py-4 text-sm font-bold text-slate-800">{f.name}</td>
+                  <td className="px-5 py-4 text-sm text-slate-600">{f.role}</td>
+                  <td className="px-5 py-4 text-sm text-slate-500">{f.phone}</td>
+                  <td className="px-5 py-4 text-xs text-slate-400 max-w-[160px] truncate">{f.bankDetails || "—"}</td>
+                  <td className="px-5 py-4 text-sm font-bold" style={{ color: CORAL }}>{fmt(f.perShootRate || 0)}</td>
+                  <td className="px-5 py-4">
+                    <div className="flex gap-1.5">
+                      <button onClick={() => openEditFL(f)} className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => setDeleteFLId(f.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!freelancers?.length && <tr><td colSpan={6} className="px-5 py-10 text-center text-slate-400 text-sm">No freelancers added yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Staff dialog */}
+      <Dialog open={staffOpen} onOpenChange={setStaffOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingStaff ? "Edit Staff" : "Add Staff Member"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5 col-span-2"><Label>Name *</Label><Input value={staffForm.name} onChange={e => setStaffForm(f => ({ ...f, name: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Role *</Label><Input value={staffForm.role} onChange={e => setStaffForm(f => ({ ...f, role: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Phone</Label><Input value={staffForm.phone} onChange={e => setStaffForm(f => ({ ...f, phone: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Monthly Salary (₹)</Label><Input type="number" value={staffForm.monthlySalary || ""} onChange={e => setStaffForm(f => ({ ...f, monthlySalary: Number(e.target.value) }))} /></div>
+              <div className="space-y-1.5"><Label>Joining Date</Label><Input type="date" value={staffForm.joiningDate} onChange={e => setStaffForm(f => ({ ...f, joiningDate: e.target.value }))} /></div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={saveStaff} disabled={createStaff.isPending || updateStaff.isPending} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: CORAL }}>{editingStaff ? "Save Changes" : "Add Staff"}</button>
+              <Button variant="outline" onClick={() => setStaffOpen(false)} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteStaffId !== null} onOpenChange={() => setDeleteStaffId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Remove Staff Member?</DialogTitle></DialogHeader>
+          <p className="text-slate-500 text-sm">This cannot be undone.</p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="destructive" onClick={() => {
+              if (deleteStaffId) deleteStaff.mutate({ id: deleteStaffId }, { onSuccess: () => { invStaff(); setDeleteStaffId(null); toast({ title: "Staff removed" }); } });
+            }} disabled={deleteStaff.isPending} className="flex-1">Remove</Button>
+            <Button variant="outline" onClick={() => setDeleteStaffId(null)} className="flex-1">Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Freelancer dialog */}
+      <Dialog open={flOpen} onOpenChange={setFlOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingFL ? "Edit Freelancer" : "Add Freelancer"}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5"><Label>Name *</Label><Input value={flForm.name} onChange={e => setFlForm(f => ({ ...f, name: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Role</Label><Input value={flForm.role} onChange={e => setFlForm(f => ({ ...f, role: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Phone *</Label><Input value={flForm.phone} onChange={e => setFlForm(f => ({ ...f, phone: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label>Per-Shoot Rate (₹)</Label><Input type="number" value={flForm.perShootRate || ""} onChange={e => setFlForm(f => ({ ...f, perShootRate: Number(e.target.value) }))} /></div>
+              <div className="space-y-1.5 col-span-2"><Label>Bank Details</Label><Input value={flForm.bankDetails || ""} onChange={e => setFlForm(f => ({ ...f, bankDetails: e.target.value }))} /></div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button onClick={saveFL} disabled={createFL.isPending || updateFL.isPending} className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-60" style={{ background: CORAL }}>{editingFL ? "Save Changes" : "Add Freelancer"}</button>
+              <Button variant="outline" onClick={() => setFlOpen(false)} className="flex-1">Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteFLId !== null} onOpenChange={() => setDeleteFLId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Remove Freelancer?</DialogTitle></DialogHeader>
+          <p className="text-slate-500 text-sm">This cannot be undone.</p>
+          <div className="flex gap-3 pt-2">
+            <Button variant="destructive" onClick={() => {
+              if (deleteFLId) deleteFL.mutate({ id: deleteFLId }, { onSuccess: () => { invFL(); setDeleteFLId(null); toast({ title: "Freelancer removed" }); } });
+            }} disabled={deleteFL.isPending} className="flex-1">Remove</Button>
+            <Button variant="outline" onClick={() => setDeleteFLId(null)} className="flex-1">Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
+// MAIN PAGE
+// ─────────────────────────────────────────
+type TabId = "pnl" | "payments" | "expenses" | "team";
+const TABS: { id: TabId; label: string; short: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "pnl", label: "P&L Overview", short: "P&L", icon: TrendingUp },
+  { id: "payments", label: "Payments", short: "Payments", icon: Wallet },
+  { id: "expenses", label: "Expenses & Investments", short: "Expenses", icon: ReceiptText },
+  { id: "team", label: "Team Costs", short: "Team", icon: Users },
+];
+
+export default function Finance() {
+  const [tab, setTab] = useState<TabId>("pnl");
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Finance</h1>
+        <p className="text-sm mt-0.5 text-slate-400">Profit & loss · payments · expenses · team costs</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1.5 sm:hidden bg-white border border-slate-200 rounded-xl p-1.5">
+        {TABS.map(t => {
+          const active = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className="flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg text-sm font-semibold transition-all"
+              style={{ background: active ? CORAL : "transparent", color: active ? "#FFFFFF" : "#64748B" }}>
+              <t.icon className="w-4 h-4 flex-shrink-0" />{t.short}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="hidden sm:flex gap-1 bg-white border border-slate-200 rounded-xl p-1 w-fit">
+        {TABS.map(t => {
+          const active = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap"
+              style={{ background: active ? CORAL : "transparent", color: active ? "#FFFFFF" : "#64748B" }}>
+              <t.icon className="w-4 h-4" />{t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === "pnl" && <PnLTab />}
+      {tab === "payments" && <PaymentsTab />}
+      {tab === "expenses" && <ExpensesTab />}
+      {tab === "team" && <TeamTab />}
+    </div>
+  );
+}

@@ -4,8 +4,7 @@ A full-stack CRM web application for Captora Photography Company — a wedding p
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
-- `pnpm --filter @workspace/captora-crm run dev` — run the frontend (port 26222)
+- `pnpm --filter @workspace/captora-nextjs run dev` — run the Next.js app (port 3002, serves both UI and API)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -15,46 +14,51 @@ A full-stack CRM web application for Captora Photography Company — a wedding p
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- Frontend: React + Vite + TailwindCSS + shadcn/ui, React Query
-- API: Express 5, JWT auth (base64 encoded, SESSION_SECRET env var)
-- DB: PostgreSQL + Drizzle ORM
+- **App**: Next.js 15 App Router (unified frontend + API routes)
+- **UI**: TailwindCSS v4 + shadcn/ui components, React Query (via `@workspace/api-client-react` generated hooks)
+- **Auth**: base64-encoded JSON token stored in cookie (`captora_token`) + localStorage; `requireAuth()` reads Authorization header in API routes
+- **DB**: PostgreSQL + Drizzle ORM (`@workspace/db`)
 - Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- API codegen: Orval (from OpenAPI spec in `lib/api-spec/`)
 
 ## Where things live
 
-- `artifacts/captora-crm/` — React+Vite frontend (previewPath `/`)
-- `artifacts/api-server/` — Express 5 backend (path `/api`, port 8080)
+- `artifacts/captora-nextjs/` — Next.js 15 app (previewPath `/`, port 3002)
+  - `app/(dashboard)/` — all CRM pages (layout with sidebar)
+  - `app/api/` — all API route handlers
+  - `app/login/` — login page
+  - `lib/api-auth.ts` — `requireAuth()` for API routes
+  - `lib/auth-context.tsx` — client-side auth state
+  - `lib/studio-context.tsx` — studio branding/theme config (localStorage)
 - `lib/db/` — Drizzle schema and migrations
 - `lib/api-spec/` — OpenAPI spec (source of truth for API contracts)
 - `lib/api-client-react/` — generated React Query hooks + Zod schemas
 
 ## Architecture decisions
 
+- **Next.js App Router**: Single unified app — no separate Express backend. API routes live under `app/api/`.
+- **Sub-routes pattern**: `clients/[id]` and `shoots/[id]` use `?sub=` query param for sub-operations (notes, freelancers, status, team, project-expenses).
 - **Contract-first API**: All endpoints defined in OpenAPI spec → Orval generates hooks. Never call APIs manually; use generated hooks.
-- **JWT auth**: Admin credentials stored in `admin_users` table (plain text password). Token base64-encoded in Authorization header.
-- **Dark theme + gold accents**: primary color `#C5A059`, background `#0a0a0a`, card `#141414`.
+- **Auth**: Admin credentials stored in `admin_users` table (plain text password). Token base64-encoded in Authorization header. Cookie `captora_token` + localStorage.
+- **Light theme**: primary/accent color `#E0533C` (coral), sidebar `#1E293B` (slate-800).
 - **Indian Rupee (₹)**: All monetary values in INR, formatted with `en-IN` locale.
 - **No `customFetch` export**: `customFetch` is internal to `api-client-react`. Use generated hooks directly.
 - **TS7030 fix**: Never use `return toast({...})` — use `{ toast({...}); return; }` to avoid mixed return types.
 - **Query options pattern**: Pass `queryKey` explicitly when using `useGetClient(id, { query: { queryKey: getGetClientQueryKey(id), enabled: !!id } })`.
+- **Next.js 15 async params**: Route handlers use `ctx: { params: Promise<{id: string}> }` → `const { id } = await ctx.params`.
 
 ## Product
 
-11 modules accessible from sidebar:
+12 modules accessible from sidebar:
 1. **Dashboard** — upcoming shoots, overdue payments, monthly stats
 2. **Clients** — full CRUD, status pipeline (Lead→Completed), WhatsApp link
-3. **Client Detail** — event info, payment summary, notes, deliverables view
+3. **Client Detail** — event info, payment summary, project P&L, freelancer assignments, notes, deliverables
 4. **Shoots** — schedule management with function tags
-5. **Payments** — installment tracking, payment modes, summary
-6. **Freelancers** — per-shoot rates, bank details
-7. **Staff** — salary, joining date, roles
-8. **Expenses** — category-based expense tracking with monthly summary
-9. **P&L** — monthly profit/loss report with bar chart
-10. **Deliverables** — checklist tracker per client (photos, videos, albums)
-11. **Content Ideas** — Kanban-style board for social/reel ideas
-12. **Team Planner** — upcoming shoot overview with function tags
+5. **Finance** — 4 tabs: P&L overview, Payments, Expenses, Team Costs
+6. **Deliverables** — checklist tracker per client (photos, videos, albums)
+7. **Content Ideas** — Kanban-style board for social/reel ideas
+8. **Team Planner** — upcoming shoot overview with function tags
+9. **Settings** — branding, themes, service categories, password change
 
 ## Admin Credentials
 
@@ -73,6 +77,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 - **StaffInput**: `joiningDate` is required in the type.
 - Run `pnpm --filter @workspace/api-spec run codegen` after any OpenAPI spec change.
 - Run `pnpm --filter @workspace/db run push` after any schema change.
+- **captora-crm and api-server artifacts**: still present in repo but superseded by captora-nextjs; their workflows have been stopped.
 
 ## Pointers
 
