@@ -1,6 +1,6 @@
 kind = "web"
-previewPath = "/"
-title = "Captora CRM"
+previewPath = "/legacy-crm"
+title = "Captora CRM (legacy)"
 version = "1.0.0"
 id = "artifacts/captora-crm"
 router = "path"
@@ -11,21 +11,12 @@ version = "1.0.0"
 
 [[services]]
 name = "web"
-paths = [ "/" ]
+paths = [ "/legacy-crm" ]
 localPort = 26222
 
 [services.development]
 run = "pnpm --filter @workspace/captora-crm run dev"
 
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/captora-crm", "run", "build" ]
-publicDir = "artifacts/captora-crm/dist/public"
-serve = "static"
-
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
-
 [services.env]
 PORT = "26222"
-BASE_PATH = "/"
+BASE_PATH = "/legacy-crm"
