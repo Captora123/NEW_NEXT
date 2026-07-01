@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "AbmjZFS-7LSwZ79LP-gQs"
+uri = "file://captora-crm-production.zip"
+type = "unspecified"
+title = "Captora CRM — Hostinger Production Package"
